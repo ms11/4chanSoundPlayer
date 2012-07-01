@@ -1,0 +1,1 @@
+######[Install]: https://github.com/ms11/4chanSoundPlayer/raw/master/4chanSP.user.js "Install"
