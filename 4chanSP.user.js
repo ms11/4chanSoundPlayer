@@ -7,7 +7,7 @@
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
 // @version        0.59
-// @updateURL      http://userscripts.org/scripts/source/136244.user.js
+// @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
 var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
@@ -32,13 +32,13 @@ function byClass(items, cl)
 
 function s2ab(text)
 {
-	var dicks = new ArrayBuffer(text.length);
-	var docks = new Uint8Array(dicks);
+	var foo = new ArrayBuffer(text.length);
+	var bar = new Uint8Array(foo);
 	for (var a = 0; a < text.length; a++)
 	{
-		docks[a] = text.charCodeAt(a);
+		bar[a] = text.charCodeAt(a);
 	}
-	return dicks;
+	return foo;
 }
 function get_chrome(uri, tag, callback)
 {
@@ -67,8 +67,8 @@ function get_grease(uri, tag, callback)
 			if (e.status == 200)
 			{
 				var text = e.responseText;
-				var dicks = s2ab(text);
-				callback(findOgg(dicks, tag), tag, uri);
+				var foo = s2ab(text);
+				callback(findOgg(foo, tag), tag, uri);
 			}
 		}
 	});
