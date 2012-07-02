@@ -40,27 +40,24 @@ function s2ab(text)
 	}
 	return foo;
 }
-function get_chrome(uri, tag, callback)
+function get_chrome(link, callback)
 {
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', uri, true);
+	xhr.open('GET', link.realhref, true);
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.responseType = 'arraybuffer';
-	xhr.onload = function(e)
-	{
-		if (this.status == 200)
-		{
-			callback(findOgg(this.response, tag), tag, uri);
+	xhr.onload = function(e) {
+		if (this.status == 200)	{
+			callback(findOgg(this.response, link.tag), link);
 		}
-	}
+	};
 	xhr.send();
 }
 //modified to be able to pass thumbnail link
-function get_grease(uri, tag, callback)
-{
+function get_grease(link, callback) {
 	GM_xmlhttpRequest({
 		method: "GET",
-		url: uri,
+		url: link.realhref,
 		overrideMimeType: 'text/plain; charset=x-user-defined',
 		onload: function(e)
 		{
@@ -68,7 +65,7 @@ function get_grease(uri, tag, callback)
 			{
 				var text = e.responseText;
 				var foo = s2ab(text);
-				callback(findOgg(foo, tag), tag, uri);
+				callback(findOgg(foo, link.tag), link);
 			}
 		}
 	});
@@ -238,16 +235,14 @@ function getPostID(o)
 function create(type, parent, attributes)
 {
     var element = document.createElement(type);
-    for (attr in attributes)
-    {
+    for (attr in attributes) {
         element.setAttribute(attr, attributes[attr]);
     }
-    if (parent != undefined)
-    {
+    if (parent) {
         parent.appendChild(element);
     }
     return element;
-} 
+}
 function sectos(sec) {
 	var m = Math.floor(sec/60);
 	var s = +(sec-m*60);
@@ -256,13 +251,8 @@ function sectos(sec) {
 function fixFFbug() {
 	if (!chrome && !playerPlayer.paused) { 
 		// Workaround for Firefox bug #583444
-		var interval = setInterval(function() {
-			try { playerCurrentDuration = playerPlayer.buffered.end(0); }
-			catch(ex) { playerCurrentDuration = 0; }
-			/*if (playerCurrentDuration != 0)	{
-				clearInterval(interval);
-			}*/
-		}, 200);
+		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
+		catch(ex) { playerCurrentDuration = 0; }
 	}
 }
 
@@ -282,30 +272,8 @@ var playerSaveData = null;
 var playerSettings = null;
 var playerStyle = null;
 var playerSettingsCSS = null;
-var playerDefault = {saveVer:1,right:0,bottom:0,shuffle:0,repeat:0,volume:1,
-			css:'#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; position: relative; right: 0px; bottom: 0px; margin-left:auto; margin-right:auto;}'+
-			'#playerDiv {line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
-			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
-			'#playerControls {display: block; text-align: center;}'+
-			'.playerListItem {cursor:pointer;, padding-top: 1px;}'+
-			'.playerListItem:hover {color: black}'+
-			'.playerListItemMoveTarget {width:180px; height: 10px; font-size: 10px !important; text-align: center; margin-top: -2px;}'+
-			'#playerImage {max-height: 120px; max-width: 180px; display: block; margin-left: auto; margin-right: auto;}'+
-			'#playerClose {top: 0px; right: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
-			'#playerToggleSet {top: 0px; left: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
-			'#playerChangeMode, .playerListItemDelete, .playerListItemMove {float:right;}'+
-			'#playerDiv a {color: darkgray !important; text-decoration: none !important;} #playerDiv a:visited {color: darkgray !important;} #playerDiv a:hover {color: black !important;}'+
-			'#playerVolume {height: 14px; width: 60px; display:block; margin-left:10px; position: absolute;}'+
-			'#playerVolumeSeekHeader {margin-left: 10px; height:7px; width:180px; background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAHCAYAAAChk2fpAAAAAXNSR0IArs4c6QAAAJpJREFUWMPtV0kKACEMq4N/7Bv7SudUKOKCjo5UkpvWrTGGGkQkERExc6BFEJFk18vb2lfatzR25blW53oCmkeei+0fjWl7J/9/cBJPbe6dwJMX1+JrNnbLXTw7FmXmoC8GggXcCxrYBzWLvISwLjsbu8F4IiTiU9Q1EX4pR1ByDHxeAMC1Q7devK2xS/HaLx7oc9OK9+be4NIvFNCOIPRVVS4AAAAASUVORK5CYII=")}'+
-			'#playerCurrentVolume {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
-			'#playerSeekbar {height: 14px; width: 120px; display:block; margin-left:70px; position: absolute;}'+
-			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
-			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+
-			'.playerListItemTag {width: 140px; height: 13px; overflow: hidden; display: inline-block;}'+
-			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
-			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
-			'#playerSettings {width:200px; height:500px; position: absolute; top: 0px; left: -210px;}'
-};
+var playerUserStyle = null;
+var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
 
 function documentMouseDown(e) {
 	if(e.target == playerTitle || e.target==playerTime || e.target==playerHeader){
@@ -401,7 +369,7 @@ function showPlayer() {
 				e.preventDefault();
 				if(e.layerX < 0 || e.layerX > 120) return;
 				var n = e.layerX/120;
-				if ((chrome?this.duration:playerCurrentDuration) != 0) {
+				if ((chrome?this.duration:playerCurrentDuration) !== 0) {
 					playerPlayer.currentTime = (chrome?this.duration:playerCurrentDuration) * n;
 				}
 			}
@@ -641,7 +609,7 @@ function prevMusic() {
 	{
 		if(items[i].getAttribute("playing") == "true")
 		{
-			if(i == 0)
+			if(i === 0)
 				items[items.length-1].tagelem.click();
 			else
 				items[i-1].tagelem.click();
@@ -667,7 +635,7 @@ function nextMusic(auto) {
 			items[rnd].tagelem.click(); return;
 			}
 			if(i == (items.length - 1)) {
-				if(auto && playerSaveData.repeat == 0){ return;}
+				if(auto && playerSaveData.repeat === 0){ return;}
 				items[0].tagelem.click();
 			}
 			else
@@ -678,14 +646,14 @@ function nextMusic(auto) {
 	if(items.length > 0) items[0].tagelem.click();
 }
 
-function hyperlinkone(target,second) {
+function rehyperlink(target,second) {
 
 	var links = target.getElementsByClassName('soundlink');
 	if(links.length < 1) {
 		if(second) return;
 		else
-		setTimeout(function() {hyperlinkone(target, true); },200);
-	};
+		setTimeout(function() {rehyperlink(target, true); },200);
+	}
 	var post = target.getElementsByTagName(archive ? 'article':'blockquote')[0];
 	var a = null;
 	var p = null;
@@ -705,52 +673,38 @@ function hyperlinkone(target,second) {
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
 			this.innerHTML = '[loading]';
-            xmlhttp(this.realhref, this.tag, function(music, tag, href) {   
-				showPlayer(false);
-				addMusic(music,tag,href);
-				try{
-				e.target.innerHTML = '[' + tag + ']';
-				}catch(e) {}
-            });
+            xmlhttp(this, function(music, link) {   
+				showPlayer();
+				addMusic(music,link.tag,link.realhref);
+				link.innerHTML = '[' + tag + ']';
+			});
 		});
 	}
 }
-
-function hyperlink() {
-	var tmpDate = (new Date()).getTime();
-	if (tmpDate < lastHyper + 2000) {
-		return;
-	}
-	lastHyper = tmpDate;
-	var newLastPost = null;
-	var posts = archive? 'article':'blockquote';
-	posts = document.getElementsByTagName(posts);
-	newLastPost = getPostID(posts[posts.length-1]);
-	if (newLastPost == lastPost) {
-		return;
-	}
-	for (var i = 0; i < posts.length; i++) {
-		// dom-insertion listener lags the fuck out on longer threads
-		if (lastPost && getPostID(posts[i]) <= lastPost) {
-			// fixed (somewhat)
-			continue;
+function hyperlinkone(target) {
+	var postname = archive ? 'article':'blockquote';
+	if(target.nodeName.toLowerCase() != postname) {
+		var elems = target.getElementsByTagName(postname);
+		for(var i = 0; i < elems.length; i++) {
+			hyperlinkone(elems[i]);
 		}
+	}else{
 		var repeat = true;
 		while (repeat) {
 			repeat = false;
 			var a = null;
 			var p = null;
 			if (!archive) {
-				p = posts[i];
-				a = byClass(posts[i].parentNode.getElementsByTagName('a'), 'fileThumb');
+				p = target;
+				a = byClass(target.parentNode.getElementsByTagName('a'), 'fileThumb');
 				if (!a) continue;
 			}else{
-				a = byClass(posts[i].getElementsByTagName('a'), 'thread_image_link');
-				p = byClass(posts[i].getElementsByTagName('div'), 'text');
+				a = byClass(target.getElementsByTagName('a'), 'thread_image_link');
+				p = byClass(target.getElementsByTagName('div'), 'text');
 				
 				if (!a || !p) continue;
 			}
-			for (var j = 0; j < p.childNodes.length; j++){
+			for (var j = 0; j < p.childNodes.length; j++) {
 				var match = null;
 				var node = p.childNodes[j];
 				if (node.nodeType != 3) {
@@ -771,16 +725,16 @@ function hyperlink() {
 							link.innerHTML = '[' + code + ']';
 							link.className = 'soundlink';
 							//link.href = href;
-							link.href = "javascript:void(0)";
+							link.href = "#";
 							link.realhref = href;
 							link.tag = code;
 							link.addEventListener('click', function(e) {
 								e.preventDefault();
 								this.innerHTML = '[loading]';
-								xmlhttp(this.realhref, this.tag, function(music, tag, href) {   
-									showPlayer(false);
-									addMusic(music,tag,href);
-									e.target.innerHTML = '[' + tag + ']';
+								xmlhttp(this, function(music, rlink) {   
+									showPlayer();
+									addMusic(music,rlink.tag,rlink.realhref);
+									rlink.innerHTML = '[' + rlink.tag + ']';
 								});
 							});
 							subnode.nodeValue = match[1];
@@ -790,36 +744,59 @@ function hyperlink() {
 						}
 					}
 				}else{
-				
-				if (!(match = node.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
-					continue;
-				}
-				repeat = true;
-				var href = a.href;
-				var code = match[2];
-				var link = document.createElement('a');
-				link.innerHTML = '[' + code + ']';
-				link.className = 'soundlink';
-
-				link.href = "javascript:void(0)";
-				link.realhref = href;
-				link.tag = code;
-				link.addEventListener('click', function(e) {
-					e.preventDefault();
-					this.innerHTML = '[loading]';
-                    xmlhttp(this.realhref, this.tag, function(music, tag, href) {   
-						showPlayer(false);
-						addMusic(music,tag,href);
-                        e.target.innerHTML = '[' + tag + ']';
-                    });
-				});
-				node.nodeValue = match[1];
-				insertAfter(node, link);
-				var text = document.createTextNode(match[3]);
-				insertAfter(link, text);
+					if (!(match = node.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
+						continue;
+					}
+					repeat = true;
+					var href = a.href;
+					var code = match[2];
+					var link = document.createElement('a');
+					link.innerHTML = '[' + code + ']';
+					link.className = 'soundlink';
+	
+					link.href = "#";
+					link.realhref = href;
+					link.tag = code;
+					link.addEventListener('click', function(e) {
+						e.preventDefault();
+						this.innerHTML = '[loading]';
+						xmlhttp(this, function(music, rlink) {   
+							showPlayer();
+							addMusic(music,rlink.tag,rlink.realhref);
+							rlink.innerHTML = '[' + rlink.tag + ']';
+						});
+					});
+					node.nodeValue = match[1];
+					insertAfter(node, link);
+					var text = document.createTextNode(match[3]);
+					insertAfter(link, text);
 				}
 			}
 		}
+	}
+}
+
+
+function hyperlink() {
+	var tmpDate = (new Date()).getTime();
+	if (tmpDate < lastHyper + 2000) {
+		return;
+	}
+	lastHyper = tmpDate;
+	var newLastPost = null;
+	var posts = archive? 'article':'blockquote';
+	posts = document.getElementsByTagName(posts);
+	newLastPost = getPostID(posts[posts.length-1]);
+	if (newLastPost == lastPost) {
+		return;
+	}
+	for (var i = 0; i < posts.length; i++) {
+		// dom-insertion listener lags the fuck out on longer threads
+		if (lastPost && getPostID(posts[i]) <= lastPost) {
+			// fixed (somewhat)
+			continue;
+		}
+		hyperlinkone(posts[i]);
 	}
 	lastPost = newLastPost;
 }
@@ -828,23 +805,50 @@ function hyperlink() {
 	hyperlink();
 	document.body.addEventListener('DOMNodeInserted', function(e)
 	{
-		hyperlink(); // I am a strong void hyperlink who dont need no e
-	});
-	document.addEventListener('DOMNodeInserted', function(e) {
 		if(e.target.classList.contains('inline')){
+			rehyperlink(e.target);
+		}else if(e.target.classList.contains('postContainer')){
 			hyperlinkone(e.target);
 		}
 	});
-
+	
 function addCss() {
 	if(!playerStyle){
-	if(!playerSaveData.css)
-		playerSaveData.css = playerDefault.css;
+	var defaultCSS ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; position: relative; right: 0px; bottom: 0px; margin-left:auto; margin-right:auto;}'+
+			'#playerDiv {line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
+			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
+			'#playerControls {display: block; text-align: center;}'+
+			'.playerListItem {cursor:pointer;, padding-top: 1px;}'+
+			'.playerListItem:hover {color: black}'+
+			'.playerListItemMoveTarget {width:180px; height: 10px; font-size: 10px !important; text-align: center; margin-top: -2px;}'+
+			'#playerImage {max-height: 120px; max-width: 180px; display: block; margin-left: auto; margin-right: auto;}'+
+			'#playerClose {top: 0px; right: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
+			'#playerToggleSet {top: 0px; left: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
+			'#playerChangeMode, .playerListItemDelete, .playerListItemMove {float:right;}'+
+			'#playerDiv a {color: darkgray !important; text-decoration: none !important;} #playerDiv a:visited {color: darkgray !important;} #playerDiv a:hover {color: black !important;}'+
+			'#playerVolume {height: 14px; width: 60px; display:block; margin-left:10px; position: absolute;}'+
+			'#playerVolumeSeekHeader {margin-left: 10px; height:7px; width:180px; background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAHCAYAAAChk2fpAAAAAXNSR0IArs4c6QAAAJpJREFUWMPtV0kKACEMq4N/7Bv7SudUKOKCjo5UkpvWrTGGGkQkERExc6BFEJFk18vb2lfatzR25blW53oCmkeei+0fjWl7J/9/cBJPbe6dwJMX1+JrNnbLXTw7FmXmoC8GggXcCxrYBzWLvISwLjsbu8F4IiTiU9Q1EX4pR1ByDHxeAMC1Q7devK2xS/HaLx7oc9OK9+be4NIvFNCOIPRVVS4AAAAASUVORK5CYII=")}'+
+			'#playerCurrentVolume {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
+			'#playerSeekbar {height: 14px; width: 120px; display:block; margin-left:70px; position: absolute;}'+
+			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
+			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+
+			'.playerListItemTag {width: 140px; height: 13px; overflow: hidden; display: inline-block;}'+
+			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
+			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
+			'#playerSettings {width:200px; height:500px; position: absolute; top: 0px; left: -210px;}';
 	playerStyle = document.createElement('style');
 	playerStyle.setAttribute('type', 'text/css');
-	playerStyle.innerHTML = playerSaveData.css;
+	playerStyle.innerHTML = defaultCSS;
 	
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
+	if(!playerUserStyle && playerSaveData.userCSS) {
+		playerUserStyle = document.createElement('style');
+		playerUserStyle.setAttribute('type', 'text/css');
+		playerUserStyle.innerHTML = playerSaveData.userCSS;
+	}else if(playerSaveData.userCSS) {
+		playerUserStyle.innerHTML = playerSaveData.userCSS;
+	}
 }
 
+unsafeWindow.hyper = hyperlinkone;
