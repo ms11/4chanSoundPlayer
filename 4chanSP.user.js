@@ -282,7 +282,7 @@ var playerSaveData = null;
 var playerSettings = null;
 var playerStyle = null;
 var playerSettingsCSS = null;
-var playerDefault = {saveVer:1,right:0,bottom:0,shuffle:0,repeat:0,volume:1,
+var playerDefault = {saveVer:2,right:0,bottom:0,shuffle:0,repeat:0,volume:1,
 			css:'#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; position: relative; right: 0px; bottom: 0px; margin-left:auto; margin-right:auto;}'+
 			'#playerDiv {line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
 			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
@@ -301,7 +301,7 @@ var playerDefault = {saveVer:1,right:0,bottom:0,shuffle:0,repeat:0,volume:1,
 			'#playerSeekbar {height: 14px; width: 120px; display:block; margin-left:70px; position: absolute;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+
-			'.playerListItemTag {width: 140px; height: 13px; overflow: hidden; display: inline-block;}'+
+			'.playerListItemTag {width: 140px; overflow: hidden; display: inline-block;}'+
 			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {width:200px; height:500px; position: absolute; top: 0px; left: -210px;}'
