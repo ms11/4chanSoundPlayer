@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.60
+// @version        0.61
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -379,7 +379,7 @@ function showPlayer() {
 		playerImage = create('img', playerDiv, {"id": "playerImage"});
 		playerControls = create('div', playerDiv, {"id": "playerControls"});
 		playerVolumeSeekHeader = create('div', playerDiv, {"id": "playerVolumeSeekHeader"});
-		playerVolume = create('div', playerDiv, {"id": "playerVolume"});
+		playerVolume = create('div', playerVolumeSeekHeader, {"id": "playerVolume"});
 		playerCurrentVolume = create('div',playerVolume, {"id": "playerCurrentVolume"});
 		playerVolume.addEventListener('click', function(e) {
 		var n=Math.round((e.layerX-5)/5)*5;
@@ -401,7 +401,7 @@ function showPlayer() {
 			playerPlayer.volume=n/55;
 		});
 		
-		playerSeekbar = create('div', playerDiv, {"id":"playerSeekbar"});
+		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
 		
 		playerSeekbar.addEventListener('click', function(e) {
@@ -555,8 +555,8 @@ function showPlayer() {
 		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerCurrentVolume, #playerSeekbarCurrent {background-color:%1} #playerDiv > * > * {color:%1 !important;} #playerDiv > * {color:%1 !important;} #playerDiv a {color:%1 !important;} #playerDiv a:visited {color:%1 !important;}"},
 					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:"#playerDiv a:hover, .playerListItemTag:hover{color:%1 !important;}"},
 					{name:"Background color",format: "CSS color value",id:"BGColor",sets:"#playerSettings, #playerDiv {background-color:%1}"},
-					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?:'width:'+data[0]+'px;':'') + (data[1]?:' heigth:'+data[1]+'px;}':'}') + (data[1]?'.playerListItem{width'+?(Number(data[1])-40)+':px}':'')"},
-					{name:"Playlist margins",format:"left,right,top,bottom ('center' is the same as setting both left and right auto",id:"PlaylistMargins",	func: "if(self.value == 'center' ) {return '#playerList {margin-left:auto; margin-right:auto;}'} else {var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';}"},
+					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' heigth:'+data[1]+'px;}':'}') + (data[1]?'.playerListItem{width'+(Number(data[1])-40)+':px}':'')"},
+					{name:"Playlist margins",format:"left,right,top,bottom",id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
 					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"}
 					//{name:
@@ -896,9 +896,9 @@ function addCSS() {
 	if(!playerStyle){
 	playerStyle = document.createElement('style');
 	playerStyle.setAttribute('type', 'text/css');
-	playerStyle.innerHTML ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; margin-left:auto; margin-right:auto;}'+
-			'#playerDiv {font-size: 12px; line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
-			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
+	playerStyle.innerHTML ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; margin-left:10px; margin-right:10px;}'+
+			'#playerDiv {font-size: 12px; line-height:15px; color: darkgrey; background: #e7e7e7; position: fixed; z-index: 20;}'+
+			'#playerHeader {height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
 			'#playerControls {display: block; text-align: center;}'+
 			'.playerListItem {cursor:pointer;, padding-top: 1px;}'+
 			'.playerListItemMoveTarget {width:180px; height: 10px; font-size: 10px !important; text-align: center; margin-top: -2px;}'+
@@ -908,10 +908,10 @@ function addCSS() {
 			'#playerToggleSet {top: 0px; left: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
 			'#playerChangeMode, .playerListItemDelete, .playerListItemMove {float:right;}'+
 			'#playerDiv a {color: darkgray !important; text-decoration: none !important;} #playerDiv a:visited {color: darkgray !important;} #playerDiv a:hover {color: black !important;}'+
-			'#playerVolume {height: 14px; width: 60px; display:block; margin-left:10px; position: absolute;}'+
-			'#playerVolumeSeekHeader {margin-left: 10px; height:7px; width:180px; background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAHCAYAAAChk2fpAAAAAXNSR0IArs4c6QAAAJpJREFUWMPtV0kKACEMq4N/7Bv7SudUKOKCjo5UkpvWrTGGGkQkERExc6BFEJFk18vb2lfatzR25blW53oCmkeei+0fjWl7J/9/cBJPbe6dwJMX1+JrNnbLXTw7FmXmoC8GggXcCxrYBzWLvISwLjsbu8F4IiTiU9Q1EX4pR1ByDHxeAMC1Q7devK2xS/HaLx7oc9OK9+be4NIvFNCOIPRVVS4AAAAASUVORK5CYII=")}'+
+			'#playerVolume {padding-top: 7px; height: 14px; width: 60px; display:inline-block;}'+
+			'#playerVolumeSeekHeader {margin-left: auto; margin-right:auto; width:180px; background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAHCAYAAAChk2fpAAAAAXNSR0IArs4c6QAAAJpJREFUWMPtV0kKACEMq4N/7Bv7SudUKOKCjo5UkpvWrTGGGkQkERExc6BFEJFk18vb2lfatzR25blW53oCmkeei+0fjWl7J/9/cBJPbe6dwJMX1+JrNnbLXTw7FmXmoC8GggXcCxrYBzWLvISwLjsbu8F4IiTiU9Q1EX4pR1ByDHxeAMC1Q7devK2xS/HaLx7oc9OK9+be4NIvFNCOIPRVVS4AAAAASUVORK5CYII="); background-repeat: no-repeat;}'+
 			'#playerCurrentVolume {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
-			'#playerSeekbar {height: 14px; width: 120px; display:block; margin-left:70px; position: absolute;}'+
+			'#playerSeekbar {padding-top: 7px; height: 14px; width: 120px; display:inline-block;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+
 			'.playerListItemTag {width: 140px; height: 18px; overflow: hidden; display: inline-block;}'+		
