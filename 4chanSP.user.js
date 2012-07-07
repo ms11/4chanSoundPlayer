@@ -274,25 +274,34 @@ var playerStyle = null;
 var playerSettingsCSS = null;
 var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
-
+var playerSettingsHeader = null;
 function documentMouseDown(e) {
 	if(e.target == playerTitle || e.target==playerTime || e.target==playerHeader){
-	e.preventDefault();
-	playerHeader.down = true;
-	playerHeader.oldx = e.clientX;
-	playerHeader.oldy = e.clientY;
+		e.preventDefault();
+		playerHeader.down = true;
+		playerHeader.oldx = e.clientX;
+		playerHeader.oldy = e.clientY;
+	}else if(e.target == playerSettingsHeader){
+		e.preventDefault();
+		playerSettingsHeader.down = true;
+		playerSettingsHeader.oldx = e.clientX;
+		playerSettingsHeader.oldy = e.clientY;
 	}
 }
 function documentMouseUp(e) {
 	if(playerHeader.down){
-	e.preventDefault();
-	playerHeader.down = false;
-	putInsidePage();
+		e.preventDefault();
+		playerHeader.down = false;
+		putInsidePage();
+	}
+	if(playerSettingsHeader.down) {
+		e.preventDefault();
+		playerSettingsHeader.down = false;
 	}
 }
 function documentMouseMove(e) {
-	if(e.target == playerHeader){
-	e.preventDefault();
+	if(e.target == playerHeader || e.target == playerSettingsHeader){
+		e.preventDefault();
 	}
 	if(playerHeader.down) {
 		var cr = Number(playerDiv.style.right.replace("px",""))
@@ -302,7 +311,36 @@ function documentMouseMove(e) {
 		playerHeader.oldx = e.clientX;
 		playerHeader.oldy = e.clientY;
 	}
+	if(playerSettingsHeader.down){
+		var cr = Number(playerSettings.style.right.replace("px",""))
+		var ct = Number(playerSettings.style.top.replace("px",""))
+		playerSettings.style.right = (cr + (playerSettingsHeader.oldx - e.clientX)) + "px";
+		playerSettings.style.top = (ct - (playerSettingsHeader.oldy - e.clientY)) + "px";
+		playerSettingsHeader.oldx = e.clientX;
+		playerSettingsHeader.oldy = e.clientY;
+	}
 }
+String.prototype.replaceAll = function(replaceTo,replaceWith) {
+	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
+}
+function updateUserCSS() {
+	var table = document.getElementById('playerSettings');
+	var elems = table.getElementsByTagName('input');
+	playerSaveData.userCSS = "";
+	for(var i = 0; i < elems.length;i++){
+		if(elems[i].value){
+			if(elems[i].sets){
+				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
+				playerSaveData.userCSS += add;
+			}
+			else if(elems[i].func){
+				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
+			}
+		}
+	}
+	addCSS();
+}
+
 function putInsidePage() {
 	if(playerDiv.clientHeight + Number(playerDiv.style.bottom.replace("px","")) > window.innerHeight) {
 		playerDiv.style.bottom = (window.innerHeight - playerDiv.clientHeight) + "px";
@@ -476,13 +514,6 @@ function showPlayer() {
 		playerPlayPause.innerHTML = ">";
 		playerPlayPause.addEventListener('click', function(e) {
 			e.preventDefault();
-			/*if(playerPlayPause.innerHTML == "PLAY"){
-				playerPlayer.play();
-				playerPlayPause.innerHTML = "PAUSE";
-			}else{
-				playerPlayer.pause();
-				playerPlayPause.innerHTML = "PLAY";
-			}*/
 			if(playerPlayer.paused)
 				playerPlayer.play();
 			else
@@ -501,9 +532,58 @@ function showPlayer() {
 			nextMusic(false);
 		});
 		
+		playerStyleSettingsButton = create('a', playerDiv, {"id":"playerStyleSettingsButton","href":"#"});
+		playerStyleSettingsButton.innerHTML="[S]";
+		playerStyleSettingsButton.addEventListener('click', function(e) {
+			e.preventDefault();
+			if(playerSettings.style.display == "none")
+				playerSettings.style.display = "block";
+			else
+				playerSettings.style.display = "none";
+		});
+		playerSettings = create('table', playerDiv, {"id":"playerSettings"});
+		playerSettings.style.right = "210px";
+		playerSettings.style.top = "0px";
+		playerSettings.style.display = "none";
+		var tbody = create('tbody', playerSettings);
+		var headerrow = create('tr', tbody);
+		playerSettingsHeader = create('td', headerrow,{"colspan":2});
+		playerSettingsHeader.innerHTML = "4chan Sounds Player Style Settings";
+		playerSettingsHeader.style.textAlign="center";
+		playerSettingsHeader.style.cursor = "move";
+		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerDiv {color:%1} #playerDiv a {color:%1 !important;} #playerDiv a:visited{color:%1 !important;}"},
+					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:"#playerDiv a:hover{color:%1 !important;} .playerListItem:hover{color:%1 !important;}"},
+					{name:"Background color",format: "CSS color value",id:"BGColor",sets:"#playerSettings {background-color:%1} #playerDiv {background-color:%1}"},
+					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?:'width:'+data[0]+'px;':'') + (data[1]?:' heigth:'+data[1]+'px;}':'}') + (data[1]?'.playerListItem{width'+?(Number(data[1])-40)+':px}':'')"},
+					{name:"Playlist margins",format:"left,right,top,bottom ('center' is the same as setting both left and right auto",id:"PlaylistMargins",	func: "if(self.value == 'center' ) {return '#playerList {margin-left:auto; margin-right:auto;}'} else {var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';}"},
+					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
+					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"}
+					//{name:
+					]
+		for(var i = 0; i < data.length;i++){
+			var tr = create('tr',tbody);
+			var td = create('td', tr,{"class":"playerSettingLabel"});
+			td.innerHTML = data[i].name;
+			if(!data[i].sets && !data[i].func) continue;
+			if(data[i].format) {
+				td.style.cursor = "help";
+				td.title = data[i].format;
+			}
+			td = create('td',tr);
+			var input = create('input', td);
+			input.classList.add('playerSettingsInput');
+			input.id= "playerSettings"+data[i].id;
+			input.sets = data[i].sets;
+			input.func = data[i].func;
+			input.addEventListener('change',function(){
+				updateUserCSS();
+			});
+		}
+		
+		
 		
 		playerHeader.down = false;
-		
+		playerSettingsHeader.down = false;
 		document.addEventListener('mousedown',documentMouseDown);
 		document.addEventListener('mouseup',documentMouseUp);
 		document.addEventListener('mousemove',documentMouseMove);
@@ -511,7 +591,7 @@ function showPlayer() {
 		
 		isPlayer = true;
 		document.body.appendChild(playerDiv);
-		addCss();
+		addCSS();
 		
 	}
 }
@@ -811,11 +891,11 @@ function hyperlink() {
 		}
 	});
 	
-function addCss() {
+function addCSS() {
 	if(!playerStyle){
 	playerStyle = document.createElement('style');
 	playerStyle.setAttribute('type', 'text/css');
-	playerStyle.innerHTML ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; position: relative; right: 0px; bottom: 0px; margin-left:auto; margin-right:auto;}'+
+	playerStyle.innerHTML ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; margin-left:auto; margin-right:auto;}'+
 			'#playerDiv {line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
 			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
 			'#playerControls {display: block; text-align: center;}'+
@@ -824,6 +904,7 @@ function addCss() {
 			'.playerListItemMoveTarget {width:180px; height: 10px; font-size: 10px !important; text-align: center; margin-top: -2px;}'+
 			'#playerImage {max-height: 120px; max-width: 180px; display: block; margin-left: auto; margin-right: auto;}'+
 			'#playerClose {top: 0px; right: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
+			'#playerStyleSettingsButton {top: 0px; left: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
 			'#playerToggleSet {top: 0px; left: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
 			'#playerChangeMode, .playerListItemDelete, .playerListItemMove {float:right;}'+
 			'#playerDiv a {color: darkgray !important; text-decoration: none !important;} #playerDiv a:visited {color: darkgray !important;} #playerDiv a:hover {color: black !important;}'+
@@ -833,16 +914,18 @@ function addCss() {
 			'#playerSeekbar {height: 14px; width: 120px; display:block; margin-left:70px; position: absolute;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+
-			'.playerListItemTag {width: 140px; height: 13px; overflow: hidden; display: inline-block;}'+
+			'.playerListItemTag {width: 140px; height: 18px; overflow: hidden; display: inline-block;}'+
 			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
-			'#playerSettings {width:200px; height:500px; position: absolute; top: 0px; left: -210px;}';
+			'#playerSettings {background: #e7e7e7; width:200px; position: absolute; max-width:none; width:400px;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
+
 	if(!playerUserStyle && playerSaveData.userCSS) {
 		playerUserStyle = document.createElement('style');
 		playerUserStyle.setAttribute('type', 'text/css');
 		playerUserStyle.innerHTML = playerSaveData.userCSS;
+		document.getElementsByTagName('head')[0].appendChild(playerUserStyle);
 	}else if(playerSaveData.userCSS) {
 		playerUserStyle.innerHTML = playerSaveData.userCSS;
 	}
