@@ -316,12 +316,13 @@ function putInsidePage() {
 	}
 }
 function loadConf() {
-playerSaveData = JSON.parse(localStorage.getItem("4chanSP"))
-		if(!playerSaveData) {
-			playerSaveData = playerDefault;
-		}else if(!playerSaveData.saveVer) {		
-			playerSaveData.css = playerDefault.css;
-		}
+	playerSaveData = JSON.parse(localStorage.getItem("4chanSP"));
+	if(!playerSaveData) {
+		playerSaveData = playerDefault;
+	}else if(playerSaveData.css) {		
+		playerSaveData.css = undefined;
+		playerSaveData.saveVer = undefined;
+	}
 }
 function showPlayer() {
 	if(!isPlayer) {
@@ -512,8 +513,6 @@ function showPlayer() {
 		document.body.appendChild(playerDiv);
 		addCss();
 		
-	}else{
-		//display: ??
 	}
 }
 
@@ -814,7 +813,9 @@ function hyperlink() {
 	
 function addCss() {
 	if(!playerStyle){
-	var defaultCSS ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; position: relative; right: 0px; bottom: 0px; margin-left:auto; margin-right:auto;}'+
+	playerStyle = document.createElement('style');
+	playerStyle.setAttribute('type', 'text/css');
+	playerStyle.innerHTML ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; position: relative; right: 0px; bottom: 0px; margin-left:auto; margin-right:auto;}'+
 			'#playerDiv {line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
 			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
 			'#playerControls {display: block; text-align: center;}'+
@@ -836,10 +837,6 @@ function addCss() {
 			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {width:200px; height:500px; position: absolute; top: 0px; left: -210px;}';
-	playerStyle = document.createElement('style');
-	playerStyle.setAttribute('type', 'text/css');
-	playerStyle.innerHTML = defaultCSS;
-	
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 	if(!playerUserStyle && playerSaveData.userCSS) {
