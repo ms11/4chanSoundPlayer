@@ -551,9 +551,9 @@ function showPlayer() {
 		playerSettingsHeader.innerHTML = "4chan Sounds Player Style Settings";
 		playerSettingsHeader.style.textAlign="center";
 		playerSettingsHeader.style.cursor = "move";
-		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerDiv {color:%1} #playerDiv a {color:%1 !important;} #playerDiv a:visited{color:%1 !important;}"},
-					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:"#playerDiv a:hover{color:%1 !important;} .playerListItem:hover{color:%1 !important;}"},
-					{name:"Background color",format: "CSS color value",id:"BGColor",sets:"#playerSettings {background-color:%1} #playerDiv {background-color:%1}"},
+		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerCurrentVolume, #playerSeekbarCurrent {background-color:%1} #playerDiv > * > * {color:%1 !important;} #playerDiv > * {color:%1 !important;} #playerDiv a {color:%1 !important;} #playerDiv a:visited {color:%1 !important;}"},
+					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:"#playerDiv a:hover, .playerListItemTag:hover{color:%1 !important;}"},
+					{name:"Background color",format: "CSS color value",id:"BGColor",sets:"#playerSettings, #playerDiv {background-color:%1}"},
 					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?:'width:'+data[0]+'px;':'') + (data[1]?:' heigth:'+data[1]+'px;}':'}') + (data[1]?'.playerListItem{width'+?(Number(data[1])-40)+':px}':'')"},
 					{name:"Playlist margins",format:"left,right,top,bottom ('center' is the same as setting both left and right auto",id:"PlaylistMargins",	func: "if(self.value == 'center' ) {return '#playerList {margin-left:auto; margin-right:auto;}'} else {var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';}"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
@@ -896,11 +896,10 @@ function addCSS() {
 	playerStyle = document.createElement('style');
 	playerStyle.setAttribute('type', 'text/css');
 	playerStyle.innerHTML ='#playerList {margin-top: 15px; width: 180px; height: 200px; overflow: auto; margin-left:auto; margin-right:auto;}'+
-			'#playerDiv {line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
+			'#playerDiv {font-size: 12px; line-height:15px; color: darkgrey;  width: 200px; background: #e7e7e7; position: fixed; z-index: 20;}'+
 			'#playerHeader {width: 200px; height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
 			'#playerControls {display: block; text-align: center;}'+
 			'.playerListItem {cursor:pointer;, padding-top: 1px;}'+
-			'.playerListItem:hover {color: black}'+
 			'.playerListItemMoveTarget {width:180px; height: 10px; font-size: 10px !important; text-align: center; margin-top: -2px;}'+
 			'#playerImage {max-height: 120px; max-width: 180px; display: block; margin-left: auto; margin-right: auto;}'+
 			'#playerClose {top: 0px; right: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
@@ -914,10 +913,12 @@ function addCSS() {
 			'#playerSeekbar {height: 14px; width: 120px; display:block; margin-left:70px; position: absolute;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+
-			'.playerListItemTag {width: 140px; height: 18px; overflow: hidden; display: inline-block;}'+
+			'.playerListItemTag {width: 140px; height: 18px; overflow: hidden; display: inline-block;}'+		
+			'.playerListItemTag:hover {color: black}'+
 			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
-			'#playerSettings {background: #e7e7e7; width:200px; position: absolute; max-width:none; width:400px;}';
+			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
+			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 
