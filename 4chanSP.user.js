@@ -272,14 +272,17 @@ var playerSaveData = null;
 var playerSettings = null;
 var playerStyle = null;
 var playerListItemMenu = null;
-
+var playerVolume = null;
+var playerCurrentVolume = null;
+var playerSeekbar = null;
+var playerSeekbarCurrent = null;
 
 var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
 var playerSettingsHeader = null;
 
 function documentMouseDown(e) {
-	if(playerListItemMenu.parentNode && e.target.parentNode != playerListItemMenu){
+	if(playerListItemMenu.parentNode && (e.target.parentNode != playerListItemMenu)){
 		playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 	}
 	if(e.target == playerTitle || e.target==playerTime || e.target==playerHeader){
@@ -292,6 +295,14 @@ function documentMouseDown(e) {
 		playerSettingsHeader.down = true;
 		playerSettingsHeader.oldx = e.clientX;
 		playerSettingsHeader.oldy = e.clientY;
+	}else if(e.target == playerCurrentVolume) {
+		e.preventDefault();
+		playerCurrentVolume.down = true;
+		playerCurrentVolume.oldx = e.clientX;
+	}else if(e.target == playerSeekbarCurrent) {
+		e.preventDefault();
+		playerSeekbarCurrent.down = true;
+		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
 function documentMouseUp(e) {
@@ -303,6 +314,19 @@ function documentMouseUp(e) {
 	if(playerSettingsHeader.down) {
 		e.preventDefault();
 		playerSettingsHeader.down = false;
+	}
+	if(playerCurrentVolume.down) {
+		e.preventDefault();
+		playerCurrentVolume.down = false;
+	}
+	if(playerSeekbarCurrent.down) {
+		e.preventDefault();
+		playerSeekbarCurrent.down = false;
+		var cl = Number(playerSeekbarCurrent.style.left.replace("px",""));
+		var n = cl/115;
+		if ((chrome?playerPlayer.duration:playerCurrentDuration) !== 0) {
+					playerPlayer.currentTime = (chrome?playerPlayer.duration:playerCurrentDuration) * n;
+		}		
 	}
 }
 function documentMouseMove(e) {
@@ -324,6 +348,22 @@ function documentMouseMove(e) {
 		playerSettings.style.top = (ct - (playerSettingsHeader.oldy - e.clientY)) + "px";
 		playerSettingsHeader.oldx = e.clientX;
 		playerSettingsHeader.oldy = e.clientY;
+	}
+	if(playerCurrentVolume.down) {
+		var cl = Number(playerCurrentVolume.style.left.replace("px",""));
+		var nl = (cl - (playerCurrentVolume.oldx - e.clientX));
+		if(nl < 0 || nl > 55) return;
+		playerPlayer.volume = nl/55;
+		playerCurrentVolume.style.left = nl + "px";
+		playerCurrentVolume.oldx = e.clientX;
+	}
+	
+	if(playerSeekbarCurrent.down) {
+		var cl = Number(playerSeekbarCurrent.style.left.replace("px",""));
+		var nl = (cl - (playerSeekbarCurrent.oldx - e.clientX));
+		if(nl < 0 || nl > 120) return;
+		playerSeekbarCurrent.style.left = nl + "px";
+		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
 String.prototype.replaceAll = function(replaceTo,replaceWith) {
@@ -368,6 +408,8 @@ function loadConf() {
 		playerSaveData.saveVer = undefined;
 	}
 }
+
+
 function showPlayer() {
 	if(!isPlayer) {
 		
@@ -386,12 +428,8 @@ function showPlayer() {
 		playerVolumeSeekHeader = create('div', playerDiv, {"id": "playerVolumeSeekHeader"});
 		playerVolume = create('div', playerVolumeSeekHeader, {"id": "playerVolume"});
 		playerCurrentVolume = create('div',playerVolume, {"id": "playerCurrentVolume"});
-		playerVolume.addEventListener('click', function(e) {
-		var n=Math.round(e.layerX/5)*5;
-		if(n < 0 || n > 55)return;
-		playerCurrentVolume.style.left = n +"px";
-		playerPlayer.volume=n/55;
-		});
+	
+		
 		playerVolume.addEventListener("DOMMouseScroll",function(e) {
 			e.preventDefault();
 			var n = Number(playerCurrentVolume.style.left.replace("px",""));
@@ -409,16 +447,6 @@ function showPlayer() {
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
 		
-		playerSeekbar.addEventListener('click', function(e) {
-			if(e.target == playerSeekbar) {
-				e.preventDefault();
-				if(e.layerX < 0 || e.layerX > 120) return;
-				var n = e.layerX/120;
-				if ((chrome?this.duration:playerCurrentDuration) !== 0) {
-					playerPlayer.currentTime = (chrome?this.duration:playerCurrentDuration) * n;
-				}
-			}
-		});
 		
 		playerList = create('div', playerDiv, {"id":"playerList"});
 		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
@@ -433,6 +461,7 @@ function showPlayer() {
 		//end
 		fixFFbug();
 		playerPlayer.addEventListener('timeupdate', function(e) {
+			if(!playerSeekbarCurrent.down){
 			if(this.currentTime > 0){
 				var x = (this.currentTime/(chrome?this.duration:playerCurrentDuration)) * 115;
 				if(x > 115) {
@@ -442,6 +471,7 @@ function showPlayer() {
 				}
 				playerSeekbarCurrent.style.left = x + "px";
 				playerTime.innerHTML = sectos(Math.round(this.currentTime)) + "/" + sectos(Math.round(chrome?this.duration:playerCurrentDuration)) || "[unknown]";
+			}
 			}
 		});
 		
@@ -564,7 +594,7 @@ function showPlayer() {
 					{name:"Playlist margins",format:"left,right,top,bottom",id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
 					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"}
-					//{name:
+					//name:
 					]
 		for(var i = 0; i < data.length;i++){
 			var tr = create('tr',tbody);
@@ -592,7 +622,7 @@ function showPlayer() {
 		playerListItemMenuDelete.innerHTML = "Delete";
 		playerListItemMenuDelete.addEventListener('click',function(e) {
 			e.preventDefault();
-			playerListItemMenu.item.delete();
+			playerListItemMenu.item.remove();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
 		playerListItemMenuMove = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
@@ -602,12 +632,13 @@ function showPlayer() {
 			playerListItemMenu.item.move();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenuSave = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
-		playerListItemMenuSave.innerHTML = "Save...";
-		playerListItemMenuSave.addEventListener('click',function(e) {
+		playerListItemMenu.save = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListItemMenu.save.innerHTML = "Save...";
+		playerListItemMenu.save.addEventListener('click',function(e) {
+			if(!chrome){
 			e.preventDefault();
-			playerListItemMenu.item.dosave();
-			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+			window.open(this.href);
+			}
 		});
 		
 		
@@ -661,12 +692,9 @@ function addMusic(data,tag,url) {
 		showMoverTargets(false);
 		showMoverTargets();
 	};
-	item.delete = function() {
-		(window.webkitURL || window.URL).revokeObjectURL(this.blobulr);
+	item.remove = function() {
+		(window.webkitURL || window.URL).revokeObjectURL(this.bloburl);
 		this.parentNode.removeChild(this);
-	};
-	item.save = function() {
-		//TODO
 	};
 	item.addEventListener('contextmenu',function(e) {
 		e.preventDefault();
@@ -675,6 +703,10 @@ function addMusic(data,tag,url) {
 		playerListItemMenu.style.left = e.clientX + 5 + "px";
 		playerListItemMenu.style.top = e.clientY + 5 + "px";
 		playerListItemMenu.item = this;
+		console.log(this);
+		console.log(e.target.parentNode.bloburl);
+		playerListItemMenu.save.href = this.bloburl;
+		playerListItemMenu.save.setAttribute("download",this.tag + ".ogg");
 	});
 	var mover = create('div', item, {"class":"playerListItemMoveTarget"});
 	mover.style.display = "none";
@@ -691,12 +723,12 @@ function addMusic(data,tag,url) {
     var bb = new BlobBuilder();
     bb.append(data);
     var blob = bb.getBlob('audio/ogg');
-	item.blobulr = (window.webkitURL || window.URL).createObjectURL(blob);
+	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;
 	item.uri = url;
 	item.tagelem = tagelem;
 	tagelem.addEventListener('click', function(e) {
-		if(e.target.parentNode.blobulr){
+		if(e.target.parentNode.bloburl){
 			var items = list.getElementsByTagName('li');
 			for(var i in items) {
 				if(items[i].setAttribute)
@@ -704,7 +736,7 @@ function addMusic(data,tag,url) {
 			}
 			e.target.parentNode.setAttribute("playing",true);
 			
-            playerPlayer.src = e.target.parentNode.blobulr;
+            playerPlayer.src = e.target.parentNode.bloburl;
 			playerTitle.innerHTML = e.target.parentNode.tag;
 			playerTitle.title = e.target.parentNode.tag;
 			playerPlayer.play();
@@ -916,14 +948,17 @@ function hyperlink() {
 
 
 	hyperlink();
-	document.body.addEventListener('DOMNodeInserted', function(e)
-	{
-		if(e.target.classList.contains('inline')){
-			rehyperlink(e.target);
-		}else if(e.target.classList.contains('postContainer')){
-			hyperlinkone(e.target);
-		}
-	});
+	if(!archive){
+		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
+		{
+			if(!e.target.classList) return;
+			if(e.target.classList.contains('inline')){
+				rehyperlink(e.target);
+			}else if(e.target.classList.contains('postContainer')){
+				hyperlinkone(e.target);
+			}
+		});
+	}
 	
 function addCSS() {
 	if(!playerStyle){
@@ -933,7 +968,7 @@ function addCSS() {
 			'.playerWindow {font-size: 12px; line-height:15px; color: darkgrey; background: #e7e7e7; position: fixed; z-index: 20;}'+
 			'#playerHeader {height: 30px; cursor: move; text-align:center; position: relative; right: 0px; top: 0px;}'+
 			'#playerControls {display: block; text-align: center;}'+
-			'.playerListItem {cursor:pointer;, padding-top: 1px;}'+
+			'.playerListItem {cursor:pointer;, padding-top: 1px; list-style: none;}'+
 			'.playerListItemMoveTarget {width:180px; height: 10px; font-size: 10px !important; text-align: center; margin-top: -2px;}'+
 			'#playerImage {max-height: 120px; max-width: 180px; display: block; margin-left: auto; margin-right: auto;}'+
 			'#playerClose {top: 0px; right: 0px; position: absolute; font-size: 10px; display: block; text-align: right; z-index: 10;}'+
