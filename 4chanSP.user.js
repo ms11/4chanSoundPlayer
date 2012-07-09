@@ -991,7 +991,7 @@ function addCSS() {
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
-			'#playerListItemMenu {position: absolute; background: #e7e7e7;}'+
+			'#playerListItemMenu {position: fixed; background: #e7e7e7;}'+
 			'.playerListItemMenuLink {display:block;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
