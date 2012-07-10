@@ -48,7 +48,7 @@ function get_chrome(link, callback)
 	xhr.responseType = 'arraybuffer';
 	xhr.onload = function(e) {
 		if (this.status == 200)	{
-			callback(findOgg(this.response, link.tag), link);
+			callback(findOggWithFooter(this.response, link.tag), link);
 		}
 	};
 	xhr.send();
@@ -65,13 +65,60 @@ function get_grease(link, callback) {
 			{
 				var text = e.responseText;
 				var foo = s2ab(text);
-				callback(findOgg(foo, link.tag), link);
+				callback(findOggWithFooter(foo, link.tag), link);
 			}
 		}
 	});
 }
+function toUInt32(data,offset){
+	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
+}
+function findOggWithFooter(raw,tag) {
+	var timer = new Date().getTime();
+	var tagU = s2ab(tag);
+	var tag8 = new Uint8Array(tagU);
+	var data = new Uint8Array(raw);
+	var footU = s2ab('4SPF');
+	var foot8 = new Uint8Array(footU);
+	for(var i = 0; i < 4 ;i++){
+		var match = true;
+		if(foot8[i] != data[data.length-4+i])
+			match = false;
+	}
+	//x y 4 S P F
+	//6 5 4 3 2 1
+	if(match){
+		var offset = (data[data.length-5] << 8 | data[data.length-6]) + 6;
+		var fstart = data.length - offset;
+		//alert(fstart);
+		for(var i = fstart; i < data.length; i++){
+			var tagmatch = true;
+			for (var j = 0; j < tag8.byteLength; j++)
+			{
+				if (data[i+j] != tag8[j])
+				{
+					tagmatch = false;
+					break;
+				}
+			}
+			if (!tagmatch)
+			{
+				continue;
+			}
+			i += tagU.byteLength;
+			var start = toUInt32(data,i);
+			i += 4;
+			var end = toUInt32(data,i);
+			//alert(tag + '|' + start + '|' + end);
+			console.log(timer-new Date().getTime());
+			return raw.slice(start,end);
+		}
+	}else
+		return findOgg(raw,tag);
+}
 function findOgg(raw, tag)
 {
+	var timer = new Date().getTime();
 	var tagU = s2ab('[' + tag + ']');
 	var skip = s2ab(' "\r\n');
 	var oggU = s2ab('OggSxx');
@@ -217,6 +264,7 @@ function findOgg(raw, tag)
 				break;
 			}
 		}
+		console.log(timer-new Date().getTime());
 		if(end>0) 
 		return raw.slice(ptr,end);
 		else
