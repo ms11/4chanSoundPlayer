@@ -73,6 +73,131 @@ function get_grease(link, callback) {
 function toUInt32(data,offset){
 	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
 }
+function loadAllFromLocalFileWithFooter(file) {
+
+	var reader = new FileReader();
+	reader.onload = function() {
+		var raw = reader.result;
+		var data = new Uint8Array(raw);
+		var footU = s2ab('4SPF');
+		var foot8 = new Uint8Array(footU);
+		var match = true;
+		for(var i = 0; i < 4 ;i++){
+			if(foot8[i] != data[data.length-4+i])
+				match = false;
+		}
+		if(match) {
+			var offset = (data[data.length-5] << 8 | data[data.length-6]) + 6;
+			var fstart = data.length - offset;
+			var tags = [];
+			
+			for(var i = data.length-7;i >= fstart;i--){
+				var it = i + 4;
+				if(it > offset && it < (data.length-7)) {
+					if(data[i] === 0 && data[it] === 0){
+						var start = toUInt32(data,i-3);
+						var end = toUInt32(data,it-3);
+						var tag = "";
+						for(var j = i-3;j > fstart;j--){
+							if(data[j] == 0)
+								break;
+							tag = String.fromCharCode(data[j]) + tag;
+						}
+						i = i - tag.length;
+						tags.push({tag:tag,start:start,end:end});
+					}
+				}
+			}
+			//tags[tags.length-1] += String.fromCharCode(data[i]);
+			tags=tags.reverse();
+			for(var i = 0; i < tags.length;i++){
+				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag);
+			}
+			
+		}else{
+			loadAllFromLocal(file);
+		}
+	};
+	reader.readAsArrayBuffer(file);
+}
+function loadAllFromLocal(file) {
+	var oggU = s2ab('OggSxx');
+	var ogg8 = new Uint8Array(oggU);
+	ogg8[4] = 0;
+	ogg8[5] = 2;
+	
+	var reader = new FileReader();
+	reader.onload = function() {
+		var raw = reader.result;
+		var data = new Uint8Array(raw);
+		var sounds = [];
+		var cont = true;
+		var oldptr = 0;
+		do{
+			var ptr = 0;
+			for (var i = oldptr; i < data.byteLength - 10; i++)
+			{
+				var match = true;
+				for (var j = 0; j < ogg8.byteLength; j++)
+				{
+					if (data[i+j] != ogg8[j])
+					{
+						match = false;
+						break;
+					}
+				}
+				if (match)
+				{
+					ptr = i;
+					break;
+				}
+			}
+			if (ptr > oldptr)
+			{
+				var ofs = [-1,-1];
+				var find = s2ab('[]');
+				var fin8 = new Uint8Array(find);
+				for (var j = ptr; j > ptr - 100; j--)
+				{
+					if (data[j] == fin8[0] && ofs[1] > 0)
+					{
+						ofs[0] = j+1;
+						break;
+					}
+					else if (data[j] == fin8[1] && ofs[0] < 0)
+					{
+						ofs[1] = j-1;
+					}
+				}
+				if (ofs[0] > 0 && ofs[1] > 0)
+				{
+					var tag = '';
+					for (var j = ofs[0]; j <= ofs[1]; j++)
+					{
+						tag += String.fromCharCode(data[j]);
+					}
+					sounds.push({data: null,start:ptr,tag: tag});
+					if(sounds.length > 1) {
+						var id = sounds.length-2;
+						sounds[id].data = raw.slice(sounds[id].start,ptr - sounds[id].tag.length);
+					}
+				}
+				oldptr = ptr;
+			}else{
+				cont = false;
+			}
+		}while(cont);
+		if(sounds.length > 0) {
+			var id = sounds.length-1;
+			sounds[id].data = raw.slice(sounds[id].start);
+		}
+		for(var i = 0; i < sounds.length;i++){
+			var tag = sounds[i].tag;
+			addMusic({data:sounds[i].data,tag:tag},tag);
+		}
+	};
+	reader.readAsArrayBuffer(file);
+}
 function findOggWithFooter(raw,tag) {
 	var timer = new Date().getTime();
 	var tagU = s2ab(tag);
@@ -80,8 +205,8 @@ function findOggWithFooter(raw,tag) {
 	var data = new Uint8Array(raw);
 	var footU = s2ab('4SPF');
 	var foot8 = new Uint8Array(footU);
+	var match = true;
 	for(var i = 0; i < 4 ;i++){
-		var match = true;
 		if(foot8[i] != data[data.length-4+i])
 			match = false;
 	}
@@ -203,12 +328,12 @@ function findOgg(raw, tag)
 			{
 				if (data[j] == fin8[0] && ofs[1] > 0)
 				{
-					ofs[0] = j;
+					ofs[0] = j+1;
 					break;
 				}
 				else if (data[j] == fin8[1] && ofs[0] < 0)
 				{
-					ofs[1] = j;
+					ofs[1] = j-1;
 				}
 			}
 			if (ofs[0] > 0 && ofs[1] > 0)
@@ -247,12 +372,12 @@ function findOgg(raw, tag)
 				{
 					if (data[j] == fin8[0] && ofs[1] > 0)
 					{
-						ofs[0] = j;
+						ofs[0] = j + 1;
 						break;
 					}
 					else if (data[j] == fin8[1] && ofs[0] < 0)
 					{
-						ofs[1] = j;
+						ofs[1] = j - 1;
 					}
 				}
 				if(ofs[0] > 0) {
@@ -265,10 +390,10 @@ function findOgg(raw, tag)
 			}
 		}
 		console.log(timer-new Date().getTime());
-		if(end>0) 
-		return raw.slice(ptr,end);
+		if(end>0)
+		return {"data":raw.slice(ptr,end),"tag":tag};
 		else
-		return raw.slice(ptr);
+		return {"data":raw.slice(ptr,end),"tag":tag};
 	}
 }
 function getPostID(o)
@@ -283,7 +408,7 @@ function getPostID(o)
 function create(type, parent, attributes)
 {
     var element = document.createElement(type);
-    for (attr in attributes) {
+    for (var attr in attributes) {
         element.setAttribute(attr, attributes[attr]);
     }
     if (parent) {
@@ -331,8 +456,41 @@ var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
 var playerSettingsHeader = null;
 
 function documentMouseDown(e) {
-	if(playerListItemMenu.parentNode && (e.target.parentNode != playerListItemMenu)){
-		playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+	if(playerListMenu.parentNode) {
+		var parent = e.target.parentNode;
+		var hide = false;
+		do{
+			if(parent == playerListMenu) {
+				hide = false;
+				break;
+			}else if(parent == document.body) {
+				hide = true;
+				break;
+			}else{
+				parent = parent.parentNode;
+			}
+		}while(true);
+		if(hide){
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		}
+	}
+	if(playerListItemMenu.parentNode) {
+		var parent = e.target.parentNode;
+		var hide = false;
+		do{
+			if(parent == playerListItemMenu) {
+				hide = false;
+				break;
+			}else if(parent == document.body) {
+				hide = true;
+				break;
+			}else{
+				parent = parent.parentNode;
+			}
+		}while(true);
+		if(hide){
+			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+		}
 	}
 	if(e.target == playerTitle || e.target==playerTime || e.target==playerHeader){
 		e.preventDefault();
@@ -383,16 +541,16 @@ function documentMouseMove(e) {
 		e.preventDefault();
 	}
 	if(playerHeader.down) {
-		var cr = Number(playerDiv.style.right.replace("px",""))
-		var cb = Number(playerDiv.style.bottom.replace("px",""))
+		var cr = Number(playerDiv.style.right.replace("px",""));
+		var cb = Number(playerDiv.style.bottom.replace("px",""));
 		playerDiv.style.right = (cr + playerHeader.oldx - e.clientX) + "px";
 		playerDiv.style.bottom = (cb + playerHeader.oldy - e.clientY) + "px";
 		playerHeader.oldx = e.clientX;
 		playerHeader.oldy = e.clientY;
 	}
 	if(playerSettingsHeader.down){
-		var cr = Number(playerSettings.style.right.replace("px",""))
-		var ct = Number(playerSettings.style.top.replace("px",""))
+		var cr = Number(playerSettings.style.right.replace("px",""));
+		var ct = Number(playerSettings.style.top.replace("px",""));
 		playerSettings.style.right = (cr + (playerSettingsHeader.oldx - e.clientX)) + "px";
 		playerSettings.style.top = (ct - (playerSettingsHeader.oldy - e.clientY)) + "px";
 		playerSettingsHeader.oldx = e.clientX;
@@ -417,7 +575,7 @@ function documentMouseMove(e) {
 }
 String.prototype.replaceAll = function(replaceTo,replaceWith) {
 	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
-}
+};
 function updateUserCSS() {
 	var table = document.getElementById('playerSettings');
 	var elems = table.getElementsByTagName('input');
@@ -646,7 +804,7 @@ function showPlayer() {
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
 					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"}
 					//name:
-					]
+					];
 		for(var i = 0; i < data.length;i++){
 			var tr = create('tr',tbody);
 			var td = create('td', tr,{"class":"playerSettingLabel"});
@@ -668,22 +826,54 @@ function showPlayer() {
 		}
 		
 		
-		playerListItemMenu = create("div", null, {"id": "playerListItemMenu","class":"playerWindow"});
-		playerListItemMenuDelete = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenu = create('div', null, {"id": "playerListMenu","class":"playerWindow"});
+		playerListMenuDelete = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenuDelete.innerHTML = "Delete all...";
+		playerListMenuDelete.addEventListener('click', function(e) {
+			e.preventDefault();
+			if(confirm('Are you sure?')){
+				var items = playerList.getElementsByTagName('li');
+				Array.prototype.forEach.call(items, function(item){
+				if(item.remove)
+						item.remove();
+				});
+			}
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		});
+		playerListMenuAddLocal = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenuAddLocal.innerHTML = "Add local file...";
+		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput"});
+		playerListMenuAddLocalInput.addEventListener('change', function(e) {
+			loadAllFromLocalFileWithFooter(e.target.files[0]);
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		});
+		playerList.addEventListener('contextmenu', function(e) {
+			if(e.target == playerList){
+				e.preventDefault();
+				if(playerListMenu.parentNode) playerListMenu.parentNode.removeChild(playerListMenu);
+				document.body.appendChild(playerListMenu);
+				playerListMenu.style.left = e.clientX + 5 + "px";
+				playerListMenu.style.top = e.clientY + 5 + "px";
+			}
+		});
+		
+		
+		playerListItemMenu = create('div', null, {"id": "playerListItemMenu","class":"playerWindow"});
+		playerListItemMenuDelete = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenuDelete.innerHTML = "Delete";
 		playerListItemMenuDelete.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.remove();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenuMove = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListItemMenuMove = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenuMove.innerHTML = "Move";
 		playerListItemMenuMove.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.move();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenu.save = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListItemMenu.save = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenu.save.innerHTML = "Save...";
 		playerListItemMenu.save.addEventListener('click',function(e) {
 			if(!chrome){
@@ -729,15 +919,24 @@ function showMoverTargets(show) {
 		mvs[i].style.display = (show ? "block" : "none");
 	}
 }
-
-function addMusic(data,tag,url) {
+function createTag(text) {
+	return text.replace(' ',''); //TODO: remove newline(?)
+}
+function addMusic(resp,tag,url) {
+    data = resp.data;
 	var list = playerList;
 	var item = create('li',list, {"class":"playerListItem"});
 	//item.innerHTML = tag;
 	var tagelem = create('span',item,{"class":"playerListItemTag"});
-	
 	tagelem.innerHTML = tag;
 	tagelem.title = tag;
+	if(resp.tag) {
+		var realtag = createTag(tag);
+		if(resp.tag != realtag && resp.tag != tag){
+		tagelem.innerHTML = "(!) " + tag;
+		tagelem.title = "'" + tag + "' was not found, playing '" + resp.tag + "' instead.";
+		}
+	}
 	item.move = function() {
 		playerMovingListItem = this;
 		showMoverTargets(false);
@@ -872,7 +1071,7 @@ function rehyperlink(target,second) {
             xmlhttp(this, function(music, link) {   
 				showPlayer();
 				addMusic(music,link.tag,link.realhref);
-				link.innerHTML = '[' + tag + ']';
+				link.innerHTML = '[' + link.tag + ']';
 			});
 		});
 	}
@@ -1039,8 +1238,9 @@ function addCSS() {
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
-			'#playerListItemMenu {position: fixed; background: #e7e7e7;}'+
-			'.playerListItemMenuLink {display:block;}';
+			'#playerListMenu, #playerListItemMenu {position: fixed; background: #e7e7e7;}'+
+			'.playerListItemMenuLink {display:block;}'+
+			'#playerListMenuAddLocalInput{opacity: 0; width: 100%; position: absolute; left: 0px; height: 50%; cursor: pointer;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 
