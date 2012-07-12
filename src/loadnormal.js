@@ -13,8 +13,7 @@ function findOggWithFooter(raw,tag) {
 	//x y 4 S P F
 	//6 5 4 3 2 1
 	if(match){
-		var offset = (data[data.length-5] << 8 | data[data.length-6]) + 6;
-		var fstart = data.length - offset;
+		var fstart = data.length - toUInt16(data,data.length-6);
 		//alert(fstart);
 		for(var i = fstart; i < data.length; i++){
 			var tagmatch = true;

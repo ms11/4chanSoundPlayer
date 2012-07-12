@@ -1,5 +1,4 @@
 function loadAllFromLocalFileWithFooter(file) {
-
 	var reader = new FileReader();
 	reader.onload = function() {
 		var raw = reader.result;
@@ -12,33 +11,25 @@ function loadAllFromLocalFileWithFooter(file) {
 				match = false;
 		}
 		if(match) {
-			var offset = (data[data.length-5] << 8 | data[data.length-6]) + 6;
-			var fstart = data.length - offset;
-			var tags = [];
-			
-			for(var i = data.length-7;i >= fstart;i--){
-				var it = i + 4;
-				if(it > offset && it < (data.length-7)) {
-					if(data[i] === 0 && data[it] === 0){
-						var start = toUInt32(data,i-3);
-						var end = toUInt32(data,it-3);
-						var tag = "";
-						for(var j = i-3;j > fstart;j--){
-							if(data[j] == 0)
-								break;
-							tag = String.fromCharCode(data[j]) + tag;
-						}
-						i = i - tag.length;
-						tags.push({tag:tag,start:start,end:end});
-					}
+			var tags=[];
+			var fstart = data.length - 6 - toUInt16(data,data.length-6);
+			for(var i = fstart;i < data.length-6;){
+				var taglen = data[i];
+				i++;
+				var tag = ""
+				for(var j = 0; j < taglen;j++){
+					tag += String.fromCharCode(data[i+j]);
 				}
+				i+=taglen;
+				var start = toUInt32(data,i);
+				i+=4;
+				var end = toUInt32(data,i);
+				i+=4;
+				tags.push({tag:tag,start:start,end:end});
 			}
-			//tags[tags.length-1] += String.fromCharCode(data[i]);
-			tags=tags.reverse();
 			for(var i = 0; i < tags.length;i++){
 				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag);
 			}
-			
 		}else{
 			loadAllFromLocal(file);
 		}

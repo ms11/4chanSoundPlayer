@@ -59,3 +59,6 @@ String.prototype.replaceAll = function(replaceTo,replaceWith) {
 function toUInt32(data,offset){
 	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
 }
+function toUInt16(data,offset){
+	return data[offset] | data[offset + 1] << 8;
+}
