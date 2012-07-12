@@ -9,6 +9,7 @@
 // @version        0.62
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
+
 var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
 var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
 
@@ -67,13 +68,13 @@ function sectos(sec) {
 String.prototype.replaceAll = function(replaceTo,replaceWith) {
 	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
 };
+
 function toUInt32(data,offset){
 	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
 }
 function toUInt16(data,offset){
 	return data[offset] | data[offset + 1] << 8;
 }
-var xmlhttp = chrome ? get_chrome:get_grease;
 function get_chrome(link, callback)
 {
 	var xhr = new XMLHttpRequest();
@@ -104,6 +105,7 @@ function get_grease(link, callback) {
 		}
 	});
 }
+var xmlhttp = chrome ? get_chrome:get_grease;
 function loadAllFromLocalFileWithFooter(file) {
 	var reader = new FileReader();
 	reader.onload = function() {
@@ -571,6 +573,7 @@ function hyperlink() {
 	}
 	lastPost = newLastPost;
 }
+
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
 var isPlayer = false;
@@ -596,6 +599,13 @@ var playerSeekbarCurrent = null;
 var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
 var playerSettingsHeader = null;
+function fixFFbug() {
+	if (!chrome && !playerPlayer.paused) { 
+		// Workaround for Firefox bug #583444
+		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
+		catch(ex) { playerCurrentDuration = 0; }
+	}
+}
 function documentMouseDown(e) {
 	if(playerListMenu.parentNode) {
 		var parent = e.target.parentNode;
@@ -671,7 +681,9 @@ function documentMouseUp(e) {
 		e.preventDefault();
 		playerSeekbarCurrent.down = false;
 		var cl = Number(playerSeekbarCurrent.style.left.replace("px",""));
-		var n = cl/115;
+		var max = Number(window.getComputedStyle(playerSeekbar).width.replace("px",""));
+		var width = Number(window.getComputedStyle(playerSeekbarCurrent).width.replace("px",""));
+		var n = cl/(max-width);
 		if ((chrome?playerPlayer.duration:playerCurrentDuration) !== 0) {
 					playerPlayer.currentTime = (chrome?playerPlayer.duration:playerCurrentDuration) * n;
 		}		
@@ -700,8 +712,11 @@ function documentMouseMove(e) {
 	if(playerCurrentVolume.down) {
 		var cl = Number(playerCurrentVolume.style.left.replace("px",""));
 		var nl = (cl - (playerCurrentVolume.oldx - e.clientX));
-		if(nl < 0 || nl > 55) return;
-		playerPlayer.volume = nl/55;
+		
+		var max = Number(window.getComputedStyle(playerVolume).width.replace("px",""));
+		var width = Number(window.getComputedStyle(playerCurrentVolume).width.replace("px",""));
+		if(nl < 0 || nl > max-width) return;
+		playerPlayer.volume = nl/(max-width);
 		playerCurrentVolume.style.left = nl + "px";
 		playerCurrentVolume.oldx = e.clientX;
 	}
@@ -709,12 +724,14 @@ function documentMouseMove(e) {
 	if(playerSeekbarCurrent.down) {
 		var cl = Number(playerSeekbarCurrent.style.left.replace("px",""));
 		var nl = (cl - (playerSeekbarCurrent.oldx - e.clientX));
-		if(nl < 0 || nl > 120) return;
+		
+		var max = Number(window.getComputedStyle(playerSeekbar).width.replace("px",""));
+		var width = Number(window.getComputedStyle(playerSeekbarCurrent).width.replace("px",""));
+		if(nl < 0 || nl > max-width) return;
 		playerSeekbarCurrent.style.left = nl + "px";
 		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
-
 
 function putInsidePage() {
 	if(playerDiv.clientHeight + Number(playerDiv.style.bottom.replace("px","")) > window.innerHeight) {
@@ -763,14 +780,18 @@ function showPlayer() {
 			e.preventDefault();
 			var n = Number(playerCurrentVolume.style.left.replace("px",""));
 			if(e.detail<0) {
-				n+=5;
+				n+=1;
 			}else if(e.detail>0) {
-				n-=5;
+				n-=1;
 			}
-			n=Math.round(n/5)*5;
-			if(n < 0 || n > 55)return;
+			
+			
+			var max = Number(window.getComputedStyle(playerVolume).width.replace("px",""));
+			var width = Number(window.getComputedStyle(playerCurrentVolume).width.replace("px",""));
+			
+			if(n < 0 || n > max-width)return;
 			playerCurrentVolume.style.left = n +"px";
-			playerPlayer.volume=n/55;
+			playerPlayer.volume=n/(max-width);
 		});
 		
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
@@ -792,8 +813,11 @@ function showPlayer() {
 		playerPlayer.addEventListener('timeupdate', function(e) {
 			if(!playerSeekbarCurrent.down){
 			if(this.currentTime > 0){
-				var x = (this.currentTime/(chrome?this.duration:playerCurrentDuration)) * 115;
-				if(x > 115) {
+				var max = Number(window.getComputedStyle(playerSeekbar).width.replace("px",""));
+				var width = Number(window.getComputedStyle(playerSeekbarCurrent).width.replace("px",""));
+				
+				var x = (this.currentTime/(chrome?this.duration:playerCurrentDuration)) * (max-width);
+				if(x > max-width) {
 					fixFFbug();
 					playerSeekbarCurrent.style.left = "0px";
 					return;
@@ -918,15 +942,14 @@ function showPlayer() {
 		playerSettingsHeader.style.cursor = "move";
 
 		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerCurrentVolume, #playerSeekbarCurrent {background-color:%1} .playerWindow > * > * {color:%1 !important;} .playerWindow > * {color:%1 !important;} .playerWindow a {color:%1 !important;} .playerWindow a:visited {color:%1 !important;}"},
-					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;}"},
+					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;} #playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: %1;}"},
 					{name:"Background color",format: "CSS color value",id:"BGColor",sets:".playerWindow {background-color:%1 !important}"},
 					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' height:'+data[1]+'px;}':'}');"},
-
-					{name:"Playlist margins",format:"left,right,top,bottom",id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
+					{name:"Playlist margins",format:"left,right,top,bottom", id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
-					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"}
-					//name:
-					];
+					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"},
+					{name:"Volume slider width", id:"VolumeSliderWidth", sets:"#playerCurrentVolume{width:%1px}"},
+					{name:"Seekbar slider width", id:"SeekbarCurrentWidth", sets:"#playerSeekbarCurrent{width:%1px}"}];
 		for(var i = 0; i < data.length;i++){
 			var tr = create('tr',tbody);
 			var td = create('td', tr,{"class":"playerSettingLabel"});
@@ -939,7 +962,8 @@ function showPlayer() {
 			td = create('td',tr);
 			var input = create('input', td);
 			input.classList.add('playerSettingsInput');
-			input.id= "playerSettings"+data[i].id;
+			input.id = "playerSettings"+data[i].id;
+
 			input.sets = data[i].sets;
 			input.func = data[i].func;
 			input.addEventListener('change',function(){
@@ -981,12 +1005,14 @@ function showPlayer() {
 		
 		playerListItemMenu = create('div', null, {"id": "playerListItemMenu","class":"playerWindow"});
 		playerListItemMenuDelete = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+
 		playerListItemMenuDelete.innerHTML = "Delete";
 		playerListItemMenuDelete.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.remove();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
+
 		playerListItemMenuMove = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenuMove.innerHTML = "Move";
 		playerListItemMenuMove.addEventListener('click',function(e) {
@@ -994,6 +1020,7 @@ function showPlayer() {
 			playerListItemMenu.item.move();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
+		
 		playerListItemMenu.save = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenu.save.innerHTML = "Save...";
 		playerListItemMenu.save.addEventListener('click',function(e) {
@@ -1029,14 +1056,6 @@ function swmode(tocompact) {
 	playerList.style.display = s;
 	playerControls2.style.marginTop = tocompact ? "15px" : "0px";
 	putInsidePage();
-}
-
-function fixFFbug() {
-	if (!chrome && !playerPlayer.paused) { 
-		// Workaround for Firefox bug #583444
-		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
-		catch(ex) { playerCurrentDuration = 0; }
-	}
 }
 function showMoverTargets(show) {
 	if(show === undefined) {
@@ -1088,8 +1107,6 @@ function addMusic(resp,tag,url) {
 		playerListItemMenu.style.left = e.clientX + 5 + "px";
 		playerListItemMenu.style.top = e.clientY + 5 + "px";
 		playerListItemMenu.item = this;
-		console.log(this);
-		console.log(e.target.parentNode.bloburl);
 		playerListItemMenu.save.href = this.bloburl;
 		playerListItemMenu.save.setAttribute("download",this.tag + ".ogg");
 	});
@@ -1214,14 +1231,15 @@ function addCSS() {
 			'#playerCurrentVolume {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'#playerSeekbar {padding-top: 7px; height: 14px; width: 120px; display:inline-block;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
+			'#playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: black;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+	
 			'.playerListItemTag:hover {color: black}'+
-			'.playerListItemTag {display:block;}'+
+			'.playerListItemTag {margin-left: 4px; margin-right: 4px; display:block;}'+
 			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
-			'#playerListMenu, #playerListItemMenu {position: fixed; background: #e7e7e7;}'+
+			'#playerListMenu, #playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
 			'.playerListItemMenuLink {display:block;}'+
 			'#playerListMenuAddLocalInput{opacity: 0; width: 100%; position: absolute; left: 0px; height: 50%; cursor: pointer;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);

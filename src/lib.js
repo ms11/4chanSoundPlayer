@@ -1,3 +1,4 @@
+
 var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
 var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
 
@@ -56,6 +57,7 @@ function sectos(sec) {
 String.prototype.replaceAll = function(replaceTo,replaceWith) {
 	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
 };
+
 function toUInt32(data,offset){
 	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
 }

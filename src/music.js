@@ -48,8 +48,6 @@ function addMusic(resp,tag,url) {
 		playerListItemMenu.style.left = e.clientX + 5 + "px";
 		playerListItemMenu.style.top = e.clientY + 5 + "px";
 		playerListItemMenu.item = this;
-		console.log(this);
-		console.log(e.target.parentNode.bloburl);
 		playerListItemMenu.save.href = this.bloburl;
 		playerListItemMenu.save.setAttribute("download",this.tag + ".ogg");
 	});

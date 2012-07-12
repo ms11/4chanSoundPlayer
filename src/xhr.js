@@ -1,4 +1,3 @@
-var xmlhttp = chrome ? get_chrome:get_grease;
 function get_chrome(link, callback)
 {
 	var xhr = new XMLHttpRequest();
@@ -29,3 +28,4 @@ function get_grease(link, callback) {
 		}
 	});
 }
+var xmlhttp = chrome ? get_chrome:get_grease;

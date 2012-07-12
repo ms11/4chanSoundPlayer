@@ -45,4 +45,3 @@ while line:
                 newversion(current,resp)
     line = f.readline()
 f.close()
-#raw_input('press ENTER')

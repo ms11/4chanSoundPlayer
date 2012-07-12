@@ -1,3 +1,4 @@
+
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
 var isPlayer = false;
