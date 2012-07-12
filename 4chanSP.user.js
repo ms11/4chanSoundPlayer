@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.63
+// @version        0.64
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -479,7 +479,9 @@ function documentMouseUp(e) {
 		e.preventDefault();
 		playerSeekbarCurrent.down = false;
 		var cl = Number(playerSeekbarCurrent.style.left.replace("px",""));
-		var n = cl/115;
+		var max = Number(window.getComputedStyle(playerSeekbar).width.replace("px",""));
+		var width = Number(window.getComputedStyle(playerSeekbarCurrent).width.replace("px",""));
+		var n = cl/(max-width);
 		if ((chrome?playerPlayer.duration:playerCurrentDuration) !== 0) {
 					playerPlayer.currentTime = (chrome?playerPlayer.duration:playerCurrentDuration) * n;
 		}		
@@ -508,8 +510,11 @@ function documentMouseMove(e) {
 	if(playerCurrentVolume.down) {
 		var cl = Number(playerCurrentVolume.style.left.replace("px",""));
 		var nl = (cl - (playerCurrentVolume.oldx - e.clientX));
-		if(nl < 0 || nl > 55) return;
-		playerPlayer.volume = nl/55;
+		
+		var max = Number(window.getComputedStyle(playerVolume).width.replace("px",""));
+		var width = Number(window.getComputedStyle(playerCurrentVolume).width.replace("px",""));
+		if(nl < 0 || nl > max-width) return;
+		playerPlayer.volume = nl/(max-width);
 		playerCurrentVolume.style.left = nl + "px";
 		playerCurrentVolume.oldx = e.clientX;
 	}
@@ -517,7 +522,10 @@ function documentMouseMove(e) {
 	if(playerSeekbarCurrent.down) {
 		var cl = Number(playerSeekbarCurrent.style.left.replace("px",""));
 		var nl = (cl - (playerSeekbarCurrent.oldx - e.clientX));
-		if(nl < 0 || nl > 120) return;
+		
+		var max = Number(window.getComputedStyle(playerSeekbar).width.replace("px",""));
+		var width = Number(window.getComputedStyle(playerSeekbarCurrent).width.replace("px",""));
+		if(nl < 0 || nl > max-width) return;
 		playerSeekbarCurrent.style.left = nl + "px";
 		playerSeekbarCurrent.oldx = e.clientX;
 	}
@@ -569,14 +577,18 @@ function showPlayer() {
 			e.preventDefault();
 			var n = Number(playerCurrentVolume.style.left.replace("px",""));
 			if(e.detail<0) {
-				n+=5;
+				n+=1;
 			}else if(e.detail>0) {
-				n-=5;
+				n-=1;
 			}
-			n=Math.round(n/5)*5;
-			if(n < 0 || n > 55)return;
+			
+			
+			var max = Number(window.getComputedStyle(playerVolume).width.replace("px",""));
+			var width = Number(window.getComputedStyle(playerCurrentVolume).width.replace("px",""));
+			
+			if(n < 0 || n > max-width)return;
 			playerCurrentVolume.style.left = n +"px";
-			playerPlayer.volume=n/55;
+			playerPlayer.volume=n/(max-width);
 		});
 		
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
@@ -598,8 +610,11 @@ function showPlayer() {
 		playerPlayer.addEventListener('timeupdate', function(e) {
 			if(!playerSeekbarCurrent.down){
 			if(this.currentTime > 0){
-				var x = (this.currentTime/(chrome?this.duration:playerCurrentDuration)) * 115;
-				if(x > 115) {
+				var max = Number(window.getComputedStyle(playerSeekbar).width.replace("px",""));
+				var width = Number(window.getComputedStyle(playerSeekbarCurrent).width.replace("px",""));
+				
+				var x = (this.currentTime/(chrome?this.duration:playerCurrentDuration)) * (max-width);
+				if(x > max-width) {
 					fixFFbug();
 					playerSeekbarCurrent.style.left = "0px";
 					return;
@@ -724,14 +739,16 @@ function showPlayer() {
 		playerSettingsHeader.style.cursor = "move";
 
 		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerCurrentVolume, #playerSeekbarCurrent {background-color:%1} .playerWindow > * > * {color:%1 !important;} .playerWindow > * {color:%1 !important;} .playerWindow a {color:%1 !important;} .playerWindow a:visited {color:%1 !important;}"},
-					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;}"},
+					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;} #playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: %1;}"},
 					{name:"Background color",format: "CSS color value",id:"BGColor",sets:".playerWindow {background-color:%1 !important}"},
 					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' height:'+data[1]+'px;}':'}');"},
 
-					{name:"Playlist margins",format:"left,right,top,bottom",id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
+					{name:"Playlist margins",format:"left,right,top,bottom", id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
-					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"}
-					//name:
+					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"},
+					{name:"Volume slider width", id:"VolumeSliderWidth", sets:"#playerCurrentVolume{width:%1px}"},
+					{name:"Seekbar slider width", id:"SeekbarCurrentWidth", sets:"#playerSeekbarCurrent{width:%1px}"}
+					//name
 					]
 		for(var i = 0; i < data.length;i++){
 			var tr = create('tr',tbody);
@@ -745,7 +762,8 @@ function showPlayer() {
 			td = create('td',tr);
 			var input = create('input', td);
 			input.classList.add('playerSettingsInput');
-			input.id= "playerSettings"+data[i].id;
+			input.id = "playerSettings"+data[i].id;
+			
 			input.sets = data[i].sets;
 			input.func = data[i].func;
 			input.addEventListener('change',function(){
@@ -947,6 +965,7 @@ function addCSS() {
 			'#playerCurrentVolume {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'#playerSeekbar {padding-top: 7px; height: 14px; width: 120px; display:inline-block;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
+			'#playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: black;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+	
 			'.playerListItemTag:hover {color: black}'+
 			'.playerListItemTag {margin-left: 4px; margin-right: 4px; display:block;}'+

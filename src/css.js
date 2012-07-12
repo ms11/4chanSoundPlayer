@@ -20,6 +20,7 @@ function addCSS() {
 			'#playerCurrentVolume {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'#playerSeekbar {padding-top: 7px; height: 14px; width: 120px; display:inline-block;}'+
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
+			'#playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: black;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+	
 			'.playerListItemTag:hover {color: black}'+
 			'.playerListItemTag {margin-left: 4px; margin-right: 4px; display:block;}'+
