@@ -10,10 +10,6 @@
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
-var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
-var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
-var xmlhttp = chrome ? get_chrome:get_grease;
-
 function insertAfter(referenceNode, newNode)
 {
 	referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
@@ -40,6 +36,34 @@ function s2ab(text)
 	}
 	return foo;
 }
+function getPostID(o)
+{
+	var o = o.getAttribute('id');
+	if (!archive)
+	{
+		o = o.substr(1);
+	}
+	return parseInt(o);
+}
+function create(type, parent, attributes)
+{
+    var element = document.createElement(type);
+    for (attr in attributes) {
+        element.setAttribute(attr, attributes[attr]);
+    }
+    if (parent) {
+        parent.appendChild(element);
+    }
+    return element;
+}
+function sectos(sec) {
+	var m = Math.floor(sec/60);
+	var s = +(sec-m*60);
+	return m+(s<10?":0":":")+s;
+}
+String.prototype.replaceAll = function(replaceTo,replaceWith) {
+	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
+};
 function get_chrome(link, callback)
 {
 	var xhr = new XMLHttpRequest();
@@ -70,6 +94,7 @@ function get_grease(link, callback) {
 		}
 	});
 }
+var xmlhttp = chrome ? get_chrome:get_grease;
 function findOgg(raw, tag)
 {
 	var tagU = s2ab('[' + tag + ']');
@@ -223,38 +248,162 @@ function findOgg(raw, tag)
 		return raw.slice(ptr);
 	}
 }
-function getPostID(o)
-{
-	var o = o.getAttribute('id');
-	if (!archive)
-	{
-		o = o.substr(1);
+function rehyperlink(target,second) {
+
+	var links = target.getElementsByClassName('soundlink');
+	if(links.length < 1) {
+		if(second) return;
+		else
+		setTimeout(function() {rehyperlink(target, true); },200);
 	}
-	return parseInt(o);
-}
-function create(type, parent, attributes)
-{
-    var element = document.createElement(type);
-    for (attr in attributes) {
-        element.setAttribute(attr, attributes[attr]);
-    }
-    if (parent) {
-        parent.appendChild(element);
-    }
-    return element;
-}
-function sectos(sec) {
-	var m = Math.floor(sec/60);
-	var s = +(sec-m*60);
-	return m+(s<10?":0":":")+s;
-}
-function fixFFbug() {
-	if (!chrome && !playerPlayer.paused) { 
-		// Workaround for Firefox bug #583444
-		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
-		catch(ex) { playerCurrentDuration = 0; }
+	var post = target.getElementsByTagName(archive ? 'article':'blockquote')[0];
+	var a = null;
+	var p = null;
+	if (!archive) {
+		p = post;
+		a = byClass(target.getElementsByTagName('a'), 'fileThumb');
+		if (!a) return;
+	}else{
+		a = byClass(post.getElementsByTagName('a'), 'thread_image_link');
+		p = byClass(post.getElementsByTagName('div'), 'text');		
+		if (!a || !p) return;
+	}
+	for(var i = 0;i < links.length;i++){
+		var link = links[i];
+		link.realhref = a.href;
+		link.tag = link.innerHTML.replace("[","").replace("]","");
+		link.addEventListener('click', function(e) {
+			e.preventDefault();
+			this.innerHTML = '[loading]';
+            xmlhttp(this, function(music, link) {   
+				showPlayer();
+				addMusic(music,link.tag,link.realhref);
+				link.innerHTML = '[' + tag + ']';
+			});
+		});
 	}
 }
+function hyperlinkone(target) {
+	var postname = archive ? 'article':'blockquote';
+	if(target.nodeName.toLowerCase() != postname) {
+		var elems = target.getElementsByTagName(postname);
+		for(var i = 0; i < elems.length; i++) {
+			hyperlinkone(elems[i]);
+		}
+	}else{
+		var repeat = true;
+		while (repeat) {
+			repeat = false;
+			var a = null;
+			var p = null;
+			if (!archive) {
+				p = target;
+				a = byClass(target.parentNode.getElementsByTagName('a'), 'fileThumb');
+				if (!a) continue;
+			}else{
+				a = byClass(target.getElementsByTagName('a'), 'thread_image_link');
+				p = byClass(target.getElementsByTagName('div'), 'text');
+				
+				if (!a || !p) continue;
+			}
+			for (var j = 0; j < p.childNodes.length; j++) {
+				var match = null;
+				var node = p.childNodes[j];
+				if (node.nodeType != 3) {
+					if(node.className != "spoiler" && node.className != 'quote') {
+						continue;
+					}else{
+						for(var k = 0; k < node.childNodes.length; k++) {
+							
+							var subnode = node.childNodes[k];
+							if(subnode.nodeType != 3) {continue;}
+							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
+								continue;
+							}
+							repeat = true;
+							var href = a.href;
+							var code = match[2];
+							var link = document.createElement('a');
+							link.innerHTML = '[' + code + ']';
+							link.className = 'soundlink';
+							//link.href = href;
+							link.href = "#";
+							link.realhref = href;
+							link.tag = code;
+							link.addEventListener('click', function(e) {
+								e.preventDefault();
+								this.innerHTML = '[loading]';
+								xmlhttp(this, function(music, rlink) {   
+									showPlayer();
+									addMusic(music,rlink.tag,rlink.realhref);
+									rlink.innerHTML = '[' + rlink.tag + ']';
+								});
+							});
+							subnode.nodeValue = match[1];
+							insertAfter(subnode, link);
+							var text = document.createTextNode(match[3]);
+							insertAfter(link, text);
+						}
+					}
+				}else{
+					if (!(match = node.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
+						continue;
+					}
+					repeat = true;
+					var href = a.href;
+					var code = match[2];
+					var link = document.createElement('a');
+					link.innerHTML = '[' + code + ']';
+					link.className = 'soundlink';
+	
+					link.href = "#";
+					link.realhref = href;
+					link.tag = code;
+					link.addEventListener('click', function(e) {
+						e.preventDefault();
+						this.innerHTML = '[loading]';
+						xmlhttp(this, function(music, rlink) {   
+							showPlayer();
+							addMusic(music,rlink.tag,rlink.realhref);
+							rlink.innerHTML = '[' + rlink.tag + ']';
+						});
+					});
+					node.nodeValue = match[1];
+					insertAfter(node, link);
+					var text = document.createTextNode(match[3]);
+					insertAfter(link, text);
+				}
+			}
+		}
+	}
+}
+
+
+function hyperlink() {
+	var tmpDate = (new Date()).getTime();
+	if (tmpDate < lastHyper + 2000) {
+		return;
+	}
+	lastHyper = tmpDate;
+	var newLastPost = null;
+	var posts = archive? 'article':'blockquote';
+	posts = document.getElementsByTagName(posts);
+	newLastPost = getPostID(posts[posts.length-1]);
+	if (newLastPost == lastPost) {
+		return;
+	}
+	for (var i = 0; i < posts.length; i++) {
+		// dom-insertion listener lags the fuck out on longer threads
+		if (lastPost && getPostID(posts[i]) <= lastPost) {
+			// fixed (somewhat)
+			continue;
+		}
+		hyperlinkone(posts[i]);
+	}
+	lastPost = newLastPost;
+}
+var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
+var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
 
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
@@ -281,7 +430,13 @@ var playerSeekbarCurrent = null;
 var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
 var playerSettingsHeader = null;
-
+function fixFFbug() {
+	if (!chrome && !playerPlayer.paused) { 
+		// Workaround for Firefox bug #583444
+		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
+		catch(ex) { playerCurrentDuration = 0; }
+	}
+}
 function documentMouseDown(e) {
 	if(playerListItemMenu.parentNode && (e.target.parentNode != playerListItemMenu)){
 		playerListItemMenu.parentNode.removeChild(playerListItemMenu);
@@ -367,27 +522,6 @@ function documentMouseMove(e) {
 		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
-String.prototype.replaceAll = function(replaceTo,replaceWith) {
-	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
-}
-function updateUserCSS() {
-	var table = document.getElementById('playerSettings');
-	var elems = table.getElementsByTagName('input');
-	playerSaveData.userCSS = "";
-	for(var i = 0; i < elems.length;i++){
-		if(elems[i].value){
-			if(elems[i].sets){
-				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
-				playerSaveData.userCSS += add;
-			}
-			else if(elems[i].func){
-				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
-			}
-		}
-	}
-	addCSS();
-}
-
 function putInsidePage() {
 	if(playerDiv.clientHeight + Number(playerDiv.style.bottom.replace("px","")) > window.innerHeight) {
 		playerDiv.style.bottom = (window.innerHeight - playerDiv.clientHeight) + "px";
@@ -792,175 +926,6 @@ function nextMusic(auto) {
 	if(items.length > 0) items[0].tagelem.click();
 }
 
-function rehyperlink(target,second) {
-
-	var links = target.getElementsByClassName('soundlink');
-	if(links.length < 1) {
-		if(second) return;
-		else
-		setTimeout(function() {rehyperlink(target, true); },200);
-	}
-	var post = target.getElementsByTagName(archive ? 'article':'blockquote')[0];
-	var a = null;
-	var p = null;
-	if (!archive) {
-		p = post;
-		a = byClass(target.getElementsByTagName('a'), 'fileThumb');
-		if (!a) return;
-	}else{
-		a = byClass(post.getElementsByTagName('a'), 'thread_image_link');
-		p = byClass(post.getElementsByTagName('div'), 'text');		
-		if (!a || !p) return;
-	}
-	for(var i = 0;i < links.length;i++){
-		var link = links[i];
-		link.realhref = a.href;
-		link.tag = link.innerHTML.replace("[","").replace("]","");
-		link.addEventListener('click', function(e) {
-			e.preventDefault();
-			this.innerHTML = '[loading]';
-            xmlhttp(this, function(music, link) {   
-				showPlayer();
-				addMusic(music,link.tag,link.realhref);
-				link.innerHTML = '[' + tag + ']';
-			});
-		});
-	}
-}
-function hyperlinkone(target) {
-	var postname = archive ? 'article':'blockquote';
-	if(target.nodeName.toLowerCase() != postname) {
-		var elems = target.getElementsByTagName(postname);
-		for(var i = 0; i < elems.length; i++) {
-			hyperlinkone(elems[i]);
-		}
-	}else{
-		var repeat = true;
-		while (repeat) {
-			repeat = false;
-			var a = null;
-			var p = null;
-			if (!archive) {
-				p = target;
-				a = byClass(target.parentNode.getElementsByTagName('a'), 'fileThumb');
-				if (!a) continue;
-			}else{
-				a = byClass(target.getElementsByTagName('a'), 'thread_image_link');
-				p = byClass(target.getElementsByTagName('div'), 'text');
-				
-				if (!a || !p) continue;
-			}
-			for (var j = 0; j < p.childNodes.length; j++) {
-				var match = null;
-				var node = p.childNodes[j];
-				if (node.nodeType != 3) {
-					if(node.className != "spoiler" && node.className != 'quote') {
-						continue;
-					}else{
-						for(var k = 0; k < node.childNodes.length; k++) {
-							
-							var subnode = node.childNodes[k];
-							if(subnode.nodeType != 3) {continue;}
-							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
-								continue;
-							}
-							repeat = true;
-							var href = a.href;
-							var code = match[2];
-							var link = document.createElement('a');
-							link.innerHTML = '[' + code + ']';
-							link.className = 'soundlink';
-							//link.href = href;
-							link.href = "#";
-							link.realhref = href;
-							link.tag = code;
-							link.addEventListener('click', function(e) {
-								e.preventDefault();
-								this.innerHTML = '[loading]';
-								xmlhttp(this, function(music, rlink) {   
-									showPlayer();
-									addMusic(music,rlink.tag,rlink.realhref);
-									rlink.innerHTML = '[' + rlink.tag + ']';
-								});
-							});
-							subnode.nodeValue = match[1];
-							insertAfter(subnode, link);
-							var text = document.createTextNode(match[3]);
-							insertAfter(link, text);
-						}
-					}
-				}else{
-					if (!(match = node.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
-						continue;
-					}
-					repeat = true;
-					var href = a.href;
-					var code = match[2];
-					var link = document.createElement('a');
-					link.innerHTML = '[' + code + ']';
-					link.className = 'soundlink';
-	
-					link.href = "#";
-					link.realhref = href;
-					link.tag = code;
-					link.addEventListener('click', function(e) {
-						e.preventDefault();
-						this.innerHTML = '[loading]';
-						xmlhttp(this, function(music, rlink) {   
-							showPlayer();
-							addMusic(music,rlink.tag,rlink.realhref);
-							rlink.innerHTML = '[' + rlink.tag + ']';
-						});
-					});
-					node.nodeValue = match[1];
-					insertAfter(node, link);
-					var text = document.createTextNode(match[3]);
-					insertAfter(link, text);
-				}
-			}
-		}
-	}
-}
-
-
-function hyperlink() {
-	var tmpDate = (new Date()).getTime();
-	if (tmpDate < lastHyper + 2000) {
-		return;
-	}
-	lastHyper = tmpDate;
-	var newLastPost = null;
-	var posts = archive? 'article':'blockquote';
-	posts = document.getElementsByTagName(posts);
-	newLastPost = getPostID(posts[posts.length-1]);
-	if (newLastPost == lastPost) {
-		return;
-	}
-	for (var i = 0; i < posts.length; i++) {
-		// dom-insertion listener lags the fuck out on longer threads
-		if (lastPost && getPostID(posts[i]) <= lastPost) {
-			// fixed (somewhat)
-			continue;
-		}
-		hyperlinkone(posts[i]);
-	}
-	lastPost = newLastPost;
-}
-
-
-	hyperlink();
-	if(!archive){
-		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
-		{
-			if(!e.target.classList) return;
-			if(e.target.classList.contains('inline')){
-				rehyperlink(e.target);
-			}else if(e.target.classList.contains('postContainer')){
-				hyperlinkone(e.target);
-			}
-		});
-	}
-	
 function addCSS() {
 	if(!playerStyle){
 	playerStyle = document.createElement('style');
@@ -1003,4 +968,32 @@ function addCSS() {
 		playerUserStyle.innerHTML = playerSaveData.userCSS;
 	}
 }
-
+function updateUserCSS() {
+	var table = document.getElementById('playerSettings');
+	var elems = table.getElementsByTagName('input');
+	playerSaveData.userCSS = "";
+	for(var i = 0; i < elems.length;i++){
+		if(elems[i].value){
+			if(elems[i].sets){
+				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
+				playerSaveData.userCSS += add;
+			}
+			else if(elems[i].func){
+				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
+			}
+		}
+	}
+	addCSS();
+}
+hyperlink();
+if(!archive){
+	document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
+	{
+		if(!e.target.classList) return;
+		if(e.target.classList.contains('inline')){
+			rehyperlink(e.target);
+		}else if(e.target.classList.contains('postContainer')){
+			hyperlinkone(e.target);
+		}
+	});
+}
