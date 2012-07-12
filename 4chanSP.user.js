@@ -9,10 +9,8 @@
 // @version        0.62
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
-
 var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
 var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
-var xmlhttp = chrome ? get_chrome:get_grease;
 
 function insertAfter(referenceNode, newNode)
 {
@@ -40,6 +38,39 @@ function s2ab(text)
 	}
 	return foo;
 }
+
+function getPostID(o)
+{
+	var o = o.getAttribute('id');
+	if (!archive)
+	{
+		o = o.substr(1);
+	}
+	return parseInt(o);
+}
+function create(type, parent, attributes)
+{
+    var element = document.createElement(type);
+    for (var attr in attributes) {
+        element.setAttribute(attr, attributes[attr]);
+    }
+    if (parent) {
+        parent.appendChild(element);
+    }
+    return element;
+}
+function sectos(sec) {
+	var m = Math.floor(sec/60);
+	var s = +(sec-m*60);
+	return m+(s<10?":0":":")+s;
+}
+String.prototype.replaceAll = function(replaceTo,replaceWith) {
+	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
+};
+function toUInt32(data,offset){
+	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
+}
+var xmlhttp = chrome ? get_chrome:get_grease;
 function get_chrome(link, callback)
 {
 	var xhr = new XMLHttpRequest();
@@ -69,9 +100,6 @@ function get_grease(link, callback) {
 			}
 		}
 	});
-}
-function toUInt32(data,offset){
-	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
 }
 function loadAllFromLocalFileWithFooter(file) {
 
@@ -396,39 +424,160 @@ function findOgg(raw, tag)
 		return {"data":raw.slice(ptr,end),"tag":tag};
 	}
 }
-function getPostID(o)
-{
-	var o = o.getAttribute('id');
-	if (!archive)
-	{
-		o = o.substr(1);
+function rehyperlink(target,second) {
+
+	var links = target.getElementsByClassName('soundlink');
+	if(links.length < 1) {
+		if(second) return;
+		else
+		setTimeout(function() {rehyperlink(target, true); },200);
 	}
-	return parseInt(o);
+	var post = target.getElementsByTagName(archive ? 'article':'blockquote')[0];
+	var a = null;
+	var p = null;
+	if (!archive) {
+		p = post;
+		a = byClass(target.getElementsByTagName('a'), 'fileThumb');
+		if (!a) return;
+	}else{
+		a = byClass(post.getElementsByTagName('a'), 'thread_image_link');
+		p = byClass(post.getElementsByTagName('div'), 'text');		
+		if (!a || !p) return;
+	}
+	for(var i = 0;i < links.length;i++){
+		var link = links[i];
+		link.realhref = a.href;
+		link.tag = link.innerHTML.replace("[","").replace("]","");
+		link.addEventListener('click', function(e) {
+			e.preventDefault();
+			this.innerHTML = '[loading]';
+            xmlhttp(this, function(music, link) {   
+				showPlayer();
+				addMusic(music,link.tag,link.realhref);
+				link.innerHTML = '[' + link.tag + ']';
+			});
+		});
+	}
 }
-function create(type, parent, attributes)
-{
-    var element = document.createElement(type);
-    for (var attr in attributes) {
-        element.setAttribute(attr, attributes[attr]);
-    }
-    if (parent) {
-        parent.appendChild(element);
-    }
-    return element;
-}
-function sectos(sec) {
-	var m = Math.floor(sec/60);
-	var s = +(sec-m*60);
-	return m+(s<10?":0":":")+s;
-}
-function fixFFbug() {
-	if (!chrome && !playerPlayer.paused) { 
-		// Workaround for Firefox bug #583444
-		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
-		catch(ex) { playerCurrentDuration = 0; }
+function hyperlinkone(target) {
+	var postname = archive ? 'article':'blockquote';
+	if(target.nodeName.toLowerCase() != postname) {
+		var elems = target.getElementsByTagName(postname);
+		for(var i = 0; i < elems.length; i++) {
+			hyperlinkone(elems[i]);
+		}
+	}else{
+		var repeat = true;
+		while (repeat) {
+			repeat = false;
+			var a = null;
+			var p = null;
+			if (!archive) {
+				p = target;
+				a = byClass(target.parentNode.getElementsByTagName('a'), 'fileThumb');
+				if (!a) continue;
+			}else{
+				a = byClass(target.getElementsByTagName('a'), 'thread_image_link');
+				p = byClass(target.getElementsByTagName('div'), 'text');
+				
+				if (!a || !p) continue;
+			}
+			for (var j = 0; j < p.childNodes.length; j++) {
+				var match = null;
+				var node = p.childNodes[j];
+				if (node.nodeType != 3) {
+					if(node.className != "spoiler" && node.className != 'quote') {
+						continue;
+					}else{
+						for(var k = 0; k < node.childNodes.length; k++) {
+							
+							var subnode = node.childNodes[k];
+							if(subnode.nodeType != 3) {continue;}
+							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
+								continue;
+							}
+							repeat = true;
+							var href = a.href;
+							var code = match[2];
+							var link = document.createElement('a');
+							link.innerHTML = '[' + code + ']';
+							link.className = 'soundlink';
+							//link.href = href;
+							link.href = "#";
+							link.realhref = href;
+							link.tag = code;
+							link.addEventListener('click', function(e) {
+								e.preventDefault();
+								this.innerHTML = '[loading]';
+								xmlhttp(this, function(music, rlink) {   
+									showPlayer();
+									addMusic(music,rlink.tag,rlink.realhref);
+									rlink.innerHTML = '[' + rlink.tag + ']';
+								});
+							});
+							subnode.nodeValue = match[1];
+							insertAfter(subnode, link);
+							var text = document.createTextNode(match[3]);
+							insertAfter(link, text);
+						}
+					}
+				}else{
+					if (!(match = node.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
+						continue;
+					}
+					repeat = true;
+					var href = a.href;
+					var code = match[2];
+					var link = document.createElement('a');
+					link.innerHTML = '[' + code + ']';
+					link.className = 'soundlink';
+	
+					link.href = "#";
+					link.realhref = href;
+					link.tag = code;
+					link.addEventListener('click', function(e) {
+						e.preventDefault();
+						this.innerHTML = '[loading]';
+						xmlhttp(this, function(music, rlink) {   
+							showPlayer();
+							addMusic(music,rlink.tag,rlink.realhref);
+							rlink.innerHTML = '[' + rlink.tag + ']';
+						});
+					});
+					node.nodeValue = match[1];
+					insertAfter(node, link);
+					var text = document.createTextNode(match[3]);
+					insertAfter(link, text);
+				}
+			}
+		}
 	}
 }
 
+
+function hyperlink() {
+	var tmpDate = (new Date()).getTime();
+	if (tmpDate < lastHyper + 2000) {
+		return;
+	}
+	lastHyper = tmpDate;
+	var newLastPost = null;
+	var posts = archive? 'article':'blockquote';
+	posts = document.getElementsByTagName(posts);
+	newLastPost = getPostID(posts[posts.length-1]);
+	if (newLastPost == lastPost) {
+		return;
+	}
+	for (var i = 0; i < posts.length; i++) {
+		// dom-insertion listener lags the fuck out on longer threads
+		if (lastPost && getPostID(posts[i]) <= lastPost) {
+			// fixed (somewhat)
+			continue;
+		}
+		hyperlinkone(posts[i]);
+	}
+	lastPost = newLastPost;
+}
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
 var isPlayer = false;
@@ -454,7 +603,6 @@ var playerSeekbarCurrent = null;
 var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:""};
 var playerSettingsHeader = null;
-
 function documentMouseDown(e) {
 	if(playerListMenu.parentNode) {
 		var parent = e.target.parentNode;
@@ -502,11 +650,11 @@ function documentMouseDown(e) {
 		playerSettingsHeader.down = true;
 		playerSettingsHeader.oldx = e.clientX;
 		playerSettingsHeader.oldy = e.clientY;
-	}else if(e.target == playerCurrentVolume) {
+	}else if(e.target == playerCurrentVolume && !playerPlayer.error) {
 		e.preventDefault();
 		playerCurrentVolume.down = true;
 		playerCurrentVolume.oldx = e.clientX;
-	}else if(e.target == playerSeekbarCurrent) {
+	}else if(e.target == playerSeekbarCurrent && !playerPlayer.error) {
 		e.preventDefault();
 		playerSeekbarCurrent.down = true;
 		playerSeekbarCurrent.oldx = e.clientX;
@@ -573,26 +721,7 @@ function documentMouseMove(e) {
 		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
-String.prototype.replaceAll = function(replaceTo,replaceWith) {
-	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
-};
-function updateUserCSS() {
-	var table = document.getElementById('playerSettings');
-	var elems = table.getElementsByTagName('input');
-	playerSaveData.userCSS = "";
-	for(var i = 0; i < elems.length;i++){
-		if(elems[i].value){
-			if(elems[i].sets){
-				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
-				playerSaveData.userCSS += add;
-			}
-			else if(elems[i].func){
-				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
-			}
-		}
-	}
-	addCSS();
-}
+
 
 function putInsidePage() {
 	if(playerDiv.clientHeight + Number(playerDiv.style.bottom.replace("px","")) > window.innerHeight) {
@@ -828,15 +957,14 @@ function showPlayer() {
 		
 		playerListMenu = create('div', null, {"id": "playerListMenu","class":"playerWindow"});
 		playerListMenuDelete = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
-		playerListMenuDelete.innerHTML = "Delete all...";
+		playerListMenuDelete.innerHTML = "Remove all...";
 		playerListMenuDelete.addEventListener('click', function(e) {
 			e.preventDefault();
 			if(confirm('Are you sure?')){
 				var items = playerList.getElementsByTagName('li');
-				Array.prototype.forEach.call(items, function(item){
-				if(item.remove)
-						item.remove();
-				});
+				while(items.length > 0){
+					items[items.length-1].remove();
+				}
 			}
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
@@ -909,6 +1037,14 @@ function swmode(tocompact) {
 	playerControls2.style.marginTop = tocompact ? "15px" : "0px";
 	putInsidePage();
 }
+
+function fixFFbug() {
+	if (!chrome && !playerPlayer.paused) { 
+		// Workaround for Firefox bug #583444
+		try { playerCurrentDuration = playerPlayer.buffered.end(0); }
+		catch(ex) { playerCurrentDuration = 0; }
+	}
+}
 function showMoverTargets(show) {
 	if(show === undefined) {
 		show = true;
@@ -919,9 +1055,7 @@ function showMoverTargets(show) {
 		mvs[i].style.display = (show ? "block" : "none");
 	}
 }
-function createTag(text) {
-	return text.replace(' ',''); //TODO: remove newline(?)
-}
+
 function addMusic(resp,tag,url) {
     data = resp.data;
 	var list = playerList;
@@ -931,7 +1065,7 @@ function addMusic(resp,tag,url) {
 	tagelem.innerHTML = tag;
 	tagelem.title = tag;
 	if(resp.tag) {
-		var realtag = createTag(tag);
+		var realtag = tag.replace(' ','');
 		if(resp.tag != realtag && resp.tag != tag){
 		tagelem.innerHTML = "(!) " + tag;
 		tagelem.title = "'" + tag + "' was not found, playing '" + resp.tag + "' instead.";
@@ -943,6 +1077,14 @@ function addMusic(resp,tag,url) {
 		showMoverTargets();
 	};
 	item.remove = function() {
+		if(this.getAttribute('playing') == "true") {
+			playerPlayer.pause();
+			playerPlayer.src = "";
+			playerImage.src = "";
+			playerTitle.innerHTML = "";
+			playerTime.innerHTML = "";
+			playerSeekbarCurrent.style.left = "0px";
+		}
 		(window.webkitURL || window.URL).revokeObjectURL(this.bloburl);
 		this.parentNode.removeChild(this);
 	};
@@ -1040,176 +1182,24 @@ function nextMusic(auto) {
 	}
 	if(items.length > 0) items[0].tagelem.click();
 }
-
-function rehyperlink(target,second) {
-
-	var links = target.getElementsByClassName('soundlink');
-	if(links.length < 1) {
-		if(second) return;
-		else
-		setTimeout(function() {rehyperlink(target, true); },200);
-	}
-	var post = target.getElementsByTagName(archive ? 'article':'blockquote')[0];
-	var a = null;
-	var p = null;
-	if (!archive) {
-		p = post;
-		a = byClass(target.getElementsByTagName('a'), 'fileThumb');
-		if (!a) return;
-	}else{
-		a = byClass(post.getElementsByTagName('a'), 'thread_image_link');
-		p = byClass(post.getElementsByTagName('div'), 'text');		
-		if (!a || !p) return;
-	}
-	for(var i = 0;i < links.length;i++){
-		var link = links[i];
-		link.realhref = a.href;
-		link.tag = link.innerHTML.replace("[","").replace("]","");
-		link.addEventListener('click', function(e) {
-			e.preventDefault();
-			this.innerHTML = '[loading]';
-            xmlhttp(this, function(music, link) {   
-				showPlayer();
-				addMusic(music,link.tag,link.realhref);
-				link.innerHTML = '[' + link.tag + ']';
-			});
-		});
-	}
-}
-function hyperlinkone(target) {
-	var postname = archive ? 'article':'blockquote';
-	if(target.nodeName.toLowerCase() != postname) {
-		var elems = target.getElementsByTagName(postname);
-		for(var i = 0; i < elems.length; i++) {
-			hyperlinkone(elems[i]);
-		}
-	}else{
-		var repeat = true;
-		while (repeat) {
-			repeat = false;
-			var a = null;
-			var p = null;
-			if (!archive) {
-				p = target;
-				a = byClass(target.parentNode.getElementsByTagName('a'), 'fileThumb');
-				if (!a) continue;
-			}else{
-				a = byClass(target.getElementsByTagName('a'), 'thread_image_link');
-				p = byClass(target.getElementsByTagName('div'), 'text');
-				
-				if (!a || !p) continue;
+function updateUserCSS() {
+	var table = document.getElementById('playerSettings');
+	var elems = table.getElementsByTagName('input');
+	playerSaveData.userCSS = "";
+	for(var i = 0; i < elems.length;i++){
+		if(elems[i].value){
+			if(elems[i].sets){
+				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
+				playerSaveData.userCSS += add;
 			}
-			for (var j = 0; j < p.childNodes.length; j++) {
-				var match = null;
-				var node = p.childNodes[j];
-				if (node.nodeType != 3) {
-					if(node.className != "spoiler" && node.className != 'quote') {
-						continue;
-					}else{
-						for(var k = 0; k < node.childNodes.length; k++) {
-							
-							var subnode = node.childNodes[k];
-							if(subnode.nodeType != 3) {continue;}
-							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
-								continue;
-							}
-							repeat = true;
-							var href = a.href;
-							var code = match[2];
-							var link = document.createElement('a');
-							link.innerHTML = '[' + code + ']';
-							link.className = 'soundlink';
-							//link.href = href;
-							link.href = "#";
-							link.realhref = href;
-							link.tag = code;
-							link.addEventListener('click', function(e) {
-								e.preventDefault();
-								this.innerHTML = '[loading]';
-								xmlhttp(this, function(music, rlink) {   
-									showPlayer();
-									addMusic(music,rlink.tag,rlink.realhref);
-									rlink.innerHTML = '[' + rlink.tag + ']';
-								});
-							});
-							subnode.nodeValue = match[1];
-							insertAfter(subnode, link);
-							var text = document.createTextNode(match[3]);
-							insertAfter(link, text);
-						}
-					}
-				}else{
-					if (!(match = node.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
-						continue;
-					}
-					repeat = true;
-					var href = a.href;
-					var code = match[2];
-					var link = document.createElement('a');
-					link.innerHTML = '[' + code + ']';
-					link.className = 'soundlink';
-	
-					link.href = "#";
-					link.realhref = href;
-					link.tag = code;
-					link.addEventListener('click', function(e) {
-						e.preventDefault();
-						this.innerHTML = '[loading]';
-						xmlhttp(this, function(music, rlink) {   
-							showPlayer();
-							addMusic(music,rlink.tag,rlink.realhref);
-							rlink.innerHTML = '[' + rlink.tag + ']';
-						});
-					});
-					node.nodeValue = match[1];
-					insertAfter(node, link);
-					var text = document.createTextNode(match[3]);
-					insertAfter(link, text);
-				}
+			else if(elems[i].func){
+				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
 			}
 		}
 	}
+	addCSS();
 }
 
-
-function hyperlink() {
-	var tmpDate = (new Date()).getTime();
-	if (tmpDate < lastHyper + 2000) {
-		return;
-	}
-	lastHyper = tmpDate;
-	var newLastPost = null;
-	var posts = archive? 'article':'blockquote';
-	posts = document.getElementsByTagName(posts);
-	newLastPost = getPostID(posts[posts.length-1]);
-	if (newLastPost == lastPost) {
-		return;
-	}
-	for (var i = 0; i < posts.length; i++) {
-		// dom-insertion listener lags the fuck out on longer threads
-		if (lastPost && getPostID(posts[i]) <= lastPost) {
-			// fixed (somewhat)
-			continue;
-		}
-		hyperlinkone(posts[i]);
-	}
-	lastPost = newLastPost;
-}
-
-
-	hyperlink();
-	if(!archive){
-		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
-		{
-			if(!e.target.classList) return;
-			if(e.target.classList.contains('inline')){
-				rehyperlink(e.target);
-			}else if(e.target.classList.contains('postContainer')){
-				hyperlinkone(e.target);
-			}
-		});
-	}
-	
 function addCSS() {
 	if(!playerStyle){
 	playerStyle = document.createElement('style');
@@ -1253,4 +1243,15 @@ function addCSS() {
 		playerUserStyle.innerHTML = playerSaveData.userCSS;
 	}
 }
-
+hyperlink();
+if(!archive){
+	document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
+	{
+		if(!e.target.classList) return;
+		if(e.target.classList.contains('inline')){
+			rehyperlink(e.target);
+		}else if(e.target.classList.contains('postContainer')){
+			hyperlinkone(e.target);
+		}
+	});
+}
