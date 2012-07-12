@@ -22,12 +22,12 @@ function addCSS() {
 			'#playerSeekbarCurrent {height: 14px; width: 5px; position:relative; display:block; background: darkgrey;}'+
 			'.playerControlLink {margin-left: 2px; margin-right:2px;}'+	
 			'.playerListItemTag:hover {color: black}'+
-			'.playerListItemTag {display:block;}'+
+			'.playerListItemTag {margin-left: 4px; margin-right: 4px; display:block;}'+
 			'#playerTitle {width: 160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
-			'#playerListItemMenu {position: fixed; background: #e7e7e7;}'+
+			'#playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
 			'.playerListItemMenuLink {display:block;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
