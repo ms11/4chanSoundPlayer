@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.65
+// @version        0.66
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -108,21 +108,21 @@ function get_grease(url, callback, userState) {
 	});
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
-function loadAll(file) {
+function loadAll(file,cb) {
 	if(!file.type){
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link);
+			loadAllWithFooter(data,link,cb);
 		}, file);
 	}else{
 		var reader = new FileReader();
 		reader.onload = function() {
-		loadAllWithFooter(reader.result);
+		loadAllWithFooter(reader.result,cb);
 		};
 		reader.readAsArrayBuffer(file);
 	}
 }
 
-function loadAllWithFooter(raw,link) {
+function loadAllWithFooter(raw,link,cb) {
 		var data = new Uint8Array(raw);
 		var footU = s2ab('4SPF');
 		var foot8 = new Uint8Array(footU);
@@ -151,12 +151,13 @@ function loadAllWithFooter(raw,link) {
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){
 				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag,link);
+				cb();
 			}
 		}else{
-			loadAllFromLocal(raw,link);
+			loadAllFromLocal(raw,link,cb);
 		}
 }
-function loadAllFromLocal(raw,link) {
+function loadAllFromLocal(raw,link,cb) {
 	var oggU = s2ab('OggSxx');
 	var ogg8 = new Uint8Array(oggU);
 	ogg8[4] = 0;
@@ -226,11 +227,11 @@ function loadAllFromLocal(raw,link) {
 		for(var i = 0; i < sounds.length;i++){
 			var tag = sounds[i].tag;
 			addMusic({data:sounds[i].data,tag:tag},tag,link);
+			cb();
 		}
 	}
 }
 function findOggWithFooter(raw,tag) {
-	var timer = new Date().getTime();
 	var tagU = s2ab(tag);
 	var tag8 = new Uint8Array(tagU);
 	var data = new Uint8Array(raw);
@@ -264,8 +265,6 @@ function findOggWithFooter(raw,tag) {
 			var start = toUInt32(data,i);
 			i += 4;
 			var end = toUInt32(data,i);
-			//alert(tag + '|' + start + '|' + end);
-			console.log(timer-new Date().getTime());
 			return raw.slice(start,end);
 		}
 	}else
@@ -273,7 +272,6 @@ function findOggWithFooter(raw,tag) {
 }
 function findOgg(raw, tag)
 {
-	var timer = new Date().getTime();
 	var tagU = s2ab('[' + tag + ']');
 	var skip = s2ab(' "\r\n');
 	var oggU = s2ab('OggSxx');
@@ -419,7 +417,6 @@ function findOgg(raw, tag)
 				break;
 			}
 		}
-		console.log(timer-new Date().getTime());
 		if(end>0)
 		return {"data":raw.slice(ptr,end),"tag":tag};
 		else
@@ -579,20 +576,21 @@ function addLoadAllLink(post) {
 		if(!archive) {
 		var id = getPostID(post);
 		var pi = document.getElementById('f'+id);
-		to = byClass(pi,'fileInfo');
+		to = pi.getElementsByClassName('fileInfo')[0];
 		}else{
 			var head = post.parentNode.getElementsByTagName('header')[0];
 			head = head.getElementsByClassName('post_data')[0];
 			to = head.getElementsByClassName('post_controls')[0];
 		}
 		var loadAllLink = create('a',to, {"href":"#","class":"playerLoadAllLink"});
-		loadAllLink.innerHTML = "Load all sounds";
+		loadAllLink.innerHTML = " Load all sounds";
 		if(archive){
 			loadAllLink.classList.add('btnr');
 			loadAllLink.classList.add('parent');
 		}
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
+			e.target.innerHTML = " loading...";
 			var a = null;
 			if(!archive){
 			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
@@ -600,7 +598,7 @@ function addLoadAllLink(post) {
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href);
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
 		});
 		post.hasAllLink = true;
 	}

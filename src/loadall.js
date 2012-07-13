@@ -1,18 +1,18 @@
-function loadAll(file) {
+function loadAll(file,cb) {
 	if(!file.type){
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link);
+			loadAllWithFooter(data,link,cb);
 		}, file);
 	}else{
 		var reader = new FileReader();
 		reader.onload = function() {
-		loadAllWithFooter(reader.result);
+		loadAllWithFooter(reader.result,cb);
 		};
 		reader.readAsArrayBuffer(file);
 	}
 }
 
-function loadAllWithFooter(raw,link) {
+function loadAllWithFooter(raw,link,cb) {
 		var data = new Uint8Array(raw);
 		var footU = s2ab('4SPF');
 		var foot8 = new Uint8Array(footU);
@@ -41,12 +41,13 @@ function loadAllWithFooter(raw,link) {
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){
 				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag,link);
+				cb();
 			}
 		}else{
-			loadAllFromLocal(raw,link);
+			loadAllFromLocal(raw,link,cb);
 		}
 }
-function loadAllFromLocal(raw,link) {
+function loadAllFromLocal(raw,link,cb) {
 	var oggU = s2ab('OggSxx');
 	var ogg8 = new Uint8Array(oggU);
 	ogg8[4] = 0;
@@ -116,6 +117,7 @@ function loadAllFromLocal(raw,link) {
 		for(var i = 0; i < sounds.length;i++){
 			var tag = sounds[i].tag;
 			addMusic({data:sounds[i].data,tag:tag},tag,link);
+			cb();
 		}
 	}
 }

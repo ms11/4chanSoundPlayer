@@ -1,5 +1,4 @@
 function findOggWithFooter(raw,tag) {
-	var timer = new Date().getTime();
 	var tagU = s2ab(tag);
 	var tag8 = new Uint8Array(tagU);
 	var data = new Uint8Array(raw);
@@ -33,8 +32,6 @@ function findOggWithFooter(raw,tag) {
 			var start = toUInt32(data,i);
 			i += 4;
 			var end = toUInt32(data,i);
-			//alert(tag + '|' + start + '|' + end);
-			console.log(timer-new Date().getTime());
 			return raw.slice(start,end);
 		}
 	}else
@@ -42,7 +39,6 @@ function findOggWithFooter(raw,tag) {
 }
 function findOgg(raw, tag)
 {
-	var timer = new Date().getTime();
 	var tagU = s2ab('[' + tag + ']');
 	var skip = s2ab(' "\r\n');
 	var oggU = s2ab('OggSxx');
@@ -188,7 +184,6 @@ function findOgg(raw, tag)
 				break;
 			}
 		}
-		console.log(timer-new Date().getTime());
 		if(end>0)
 		return {"data":raw.slice(ptr,end),"tag":tag};
 		else
