@@ -1,4 +1,10 @@
-import re,string;
+import re,string
+try:
+    import install
+    install.begin()
+except:
+    pass
+
 def build():
     out = open("4chanSP.user.js","w");
     for f in ["header.js","lib.js","xhr.js","loadall.js","loadbytag.js",
@@ -9,11 +15,14 @@ def build():
         f.close()
         out.writelines(l)
         try:
-            import install
-            install.do(l)
-        except ImportError:
+            install.lines(l)
+        except:
             pass
     out.close()
+    try:
+        install.end()
+    except:
+        pass
 
 def newversion(old,new):
     out = open("src\\header.js","r")
