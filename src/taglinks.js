@@ -70,6 +70,7 @@ function hyperlinkone(target) {
 							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
 								continue;
 							}
+							addLoadAllLink(p);
 							repeat = true;
 							var href = a.href;
 							var code = match[2];
@@ -100,6 +101,8 @@ function hyperlinkone(target) {
 						continue;
 					}
 					repeat = true;
+					
+					addLoadAllLink(p);
 					var href = a.href;
 					var code = match[2];
 					var link = document.createElement('a');
@@ -130,18 +133,8 @@ function hyperlinkone(target) {
 
 
 function hyperlink() {
-	var tmpDate = (new Date()).getTime();
-	if (tmpDate < lastHyper + 2000) {
-		return;
-	}
-	lastHyper = tmpDate;
-	var newLastPost = null;
 	var posts = archive? 'article':'blockquote';
 	posts = document.getElementsByTagName(posts);
-	newLastPost = getPostID(posts[posts.length-1]);
-	if (newLastPost == lastPost) {
-		return;
-	}
 	for (var i = 0; i < posts.length; i++) {
 		// dom-insertion listener lags the fuck out on longer threads
 		if (lastPost && getPostID(posts[i]) <= lastPost) {
@@ -150,5 +143,37 @@ function hyperlink() {
 		}
 		hyperlinkone(posts[i]);
 	}
-	lastPost = newLastPost;
+}
+
+function addLoadAllLink(post) {
+	if(!post.hasAllLink){
+		var to = null;
+		if(!archive) {
+		var id = getPostID(post);
+		var pi = document.getElementById('f'+id);
+		to = byClass(pi,'fileInfo');
+		}else{
+			var head = post.parentNode.getElementsByTagName('header')[0];
+			head = head.getElementsByClassName('post_data')[0];
+			to = head.getElementsByClassName('post_controls')[0];
+		}
+		var loadAllLink = create('a',to, {"href":"#","class":"playerLoadAllLink"});
+		loadAllLink.innerHTML = "Load all sounds";
+		if(archive){
+			loadAllLink.classList.add('btnr');
+			loadAllLink.classList.add('parent');
+		}
+		loadAllLink.addEventListener('click',function(e) {
+			e.preventDefault();
+			var a = null;
+			if(!archive){
+			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+			}else{
+				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
+			}
+			if(a)
+				loadAll(a.href);
+		});
+		post.hasAllLink = true;
+	}
 }

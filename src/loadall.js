@@ -1,8 +1,8 @@
 function loadAll(file) {
 	if(!file.type){
-		xmlhttp(file,function(data) {
-			loadAllWithFooter(data);
-		});
+		xmlhttp(file,function(data,link) {
+			loadAllWithFooter(data,link);
+		}, file);
 	}else{
 		var reader = new FileReader();
 		reader.onload = function() {
@@ -12,7 +12,7 @@ function loadAll(file) {
 	}
 }
 
-function loadAllWithFooter(raw) {
+function loadAllWithFooter(raw,link) {
 		var data = new Uint8Array(raw);
 		var footU = s2ab('4SPF');
 		var foot8 = new Uint8Array(footU);
@@ -38,14 +38,15 @@ function loadAllWithFooter(raw) {
 				i+=4;
 				tags.push({tag:tag,start:start,end:end});
 			}
+			showPlayer();
 			for(var i = 0; i < tags.length;i++){
-				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag);
+				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag,link);
 			}
 		}else{
-			loadAllFromLocal(raw);
+			loadAllFromLocal(raw,link);
 		}
 }
-function loadAllFromLocal(raw) {
+function loadAllFromLocal(raw,link) {
 	var oggU = s2ab('OggSxx');
 	var ogg8 = new Uint8Array(oggU);
 	ogg8[4] = 0;
@@ -111,9 +112,10 @@ function loadAllFromLocal(raw) {
 	if(sounds.length > 0) {
 		var id = sounds.length-1;
 		sounds[id].data = raw.slice(sounds[id].start);
-	}
-	for(var i = 0; i < sounds.length;i++){
-		var tag = sounds[i].tag;
-		addMusic({data:sounds[i].data,tag:tag},tag);
+		showPlayer();		
+		for(var i = 0; i < sounds.length;i++){
+			var tag = sounds[i].tag;
+			addMusic({data:sounds[i].data,tag:tag},tag,link);
+		}
 	}
 }

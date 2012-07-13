@@ -388,7 +388,7 @@ function showPlayer() {
 		playerListMenuAddLocal.innerHTML = "Add local file...";
 		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput"});
 		playerListMenuAddLocalInput.addEventListener('change', function(e) {
-			loadAllFromLocalFileWithFooter(e.target.files[0]);
+			loadAll(e.target.files[0]);
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
 		playerList.addEventListener('contextmenu', function(e) {

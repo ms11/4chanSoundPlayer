@@ -8,6 +8,11 @@ def build():
         l = f.readlines()
         f.close()
         out.writelines(l)
+        try:
+            import install
+            install.do(l)
+        except ImportError:
+            pass
     out.close()
 
 def newversion(old,new):
