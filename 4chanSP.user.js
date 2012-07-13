@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.66
+// @version        0.67
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -1032,7 +1032,15 @@ function showPlayer() {
 			}
 		});
 		
-		
+		playerControls2.addEventListener('contextmenu', function(e) {
+			if(e.target == playerControls2){
+				e.preventDefault();
+				if(playerListMenu.parentNode) playerListMenu.parentNode.removeChild(playerListMenu);
+				document.body.appendChild(playerListMenu);
+				playerListMenu.style.left = e.clientX + 5 + "px";
+				playerListMenu.style.top = e.clientY + 5 + "px";
+			}
+		});
 		playerListItemMenu = create('div', null, {"id": "playerListItemMenu","class":"playerWindow"});
 		playerListItemMenuDelete = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 
