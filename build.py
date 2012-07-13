@@ -1,7 +1,7 @@
 import re,string;
 def build():
     out = open("4chanSP.user.js","w");
-    for f in ["header.js","lib.js","xhr.js","loadlocal.js","loadnormal.js",
+    for f in ["header.js","lib.js","xhr.js","loadall.js","loadbytag.js",
               "taglinks.js","globals.js","player.js","music.js","css.js",
               "start.js"]:
         f = open("src/" + f,"r")
