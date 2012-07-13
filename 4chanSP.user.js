@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.62
+// @version        0.65
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -605,6 +605,7 @@ function addLoadAllLink(post) {
 		post.hasAllLink = true;
 	}
 }
+
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
 var isPlayer = false;
