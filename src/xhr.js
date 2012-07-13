@@ -1,21 +1,22 @@
-function get_chrome(link, callback)
+function get_chrome(url, callback, userState)
 {
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', link.realhref, true);
+	xhr.open('GET', url, true);
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.responseType = 'arraybuffer';
 	xhr.onload = function(e) {
 		if (this.status == 200)	{
-			callback(findOggWithFooter(this.response, link.tag), link);
+			callback(this.response,userState);
+			//callback(findOggWithFooter(this.response, link.tag), link);
 		}
 	};
 	xhr.send();
 }
 //modified to be able to pass thumbnail link
-function get_grease(link, callback) {
+function get_grease(url, callback, userState) {
 	GM_xmlhttpRequest({
 		method: "GET",
-		url: link.realhref,
+		url: url,
 		overrideMimeType: 'text/plain; charset=x-user-defined',
 		onload: function(e)
 		{
@@ -23,7 +24,8 @@ function get_grease(link, callback) {
 			{
 				var text = e.responseText;
 				var foo = s2ab(text);
-				callback(findOggWithFooter(foo, link.tag), link);
+				callback(foo,userState);
+				//callback(findOggWithFooter(foo, link.tag), link);
 			}
 		}
 	});

@@ -25,11 +25,11 @@ function rehyperlink(target,second) {
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
 			this.innerHTML = '[loading]';
-            xmlhttp(this, function(music, link) {   
+            xmlhttp(this.realhref, function(data,rlink) {   
 				showPlayer();
-				addMusic(music,link.tag,link.realhref);
-				link.innerHTML = '[' + link.tag + ']';
-			});
+				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+				rlink.innerHTML = '[' + rlink.tag + ']';
+			},this);
 		});
 	}
 }
@@ -83,11 +83,11 @@ function hyperlinkone(target) {
 							link.addEventListener('click', function(e) {
 								e.preventDefault();
 								this.innerHTML = '[loading]';
-								xmlhttp(this, function(music, rlink) {   
+								xmlhttp(link.realhref, function(data, rlink) {   
 									showPlayer();
-									addMusic(music,rlink.tag,rlink.realhref);
+									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 									rlink.innerHTML = '[' + rlink.tag + ']';
-								});
+								},this);
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -112,11 +112,11 @@ function hyperlinkone(target) {
 					link.addEventListener('click', function(e) {
 						e.preventDefault();
 						this.innerHTML = '[loading]';
-						xmlhttp(this, function(music, rlink) {   
+						xmlhttp(this.realhref, function(data, rlink) {   
 							showPlayer();
-							addMusic(music,rlink.tag,rlink.realhref);
+							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 							rlink.innerHTML = '[' + rlink.tag + ']';
-						});
+						},this);
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);
