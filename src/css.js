@@ -1,3 +1,20 @@
+function updateUserCSS() {
+	var table = document.getElementById('playerSettings');
+	var elems = table.getElementsByTagName('input');
+	playerSaveData.userCSS = "";
+	for(var i = 0; i < elems.length;i++){
+		if(elems[i].value){
+			if(elems[i].sets){
+				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
+				playerSaveData.userCSS += add;
+			}
+			else if(elems[i].func){
+				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
+			}
+		}
+	}
+	addCSS();
+}
 
 function addCSS() {
 	if(!playerStyle){
@@ -28,8 +45,9 @@ function addCSS() {
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
-			'#playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
-			'.playerListItemMenuLink {display:block;}';
+			'#playerListMenu, #playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
+			'.playerListItemMenuLink {display:block;}'+
+			'#playerListMenuAddLocalInput{opacity: 0; width: 100%; position: absolute; left: 0px; height: 50%; cursor: pointer;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 
@@ -41,21 +59,4 @@ function addCSS() {
 	}else if(playerSaveData.userCSS) {
 		playerUserStyle.innerHTML = playerSaveData.userCSS;
 	}
-}
-function updateUserCSS() {
-	var table = document.getElementById('playerSettings');
-	var elems = table.getElementsByTagName('input');
-	playerSaveData.userCSS = "";
-	for(var i = 0; i < elems.length;i++){
-		if(elems[i].value){
-			if(elems[i].sets){
-				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
-				playerSaveData.userCSS += add;
-			}
-			else if(elems[i].func){
-				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
-			}
-		}
-	}
-	addCSS();
 }

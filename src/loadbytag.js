@@ -1,5 +1,48 @@
+function findOggWithFooter(raw,tag) {
+	var timer = new Date().getTime();
+	var tagU = s2ab(tag);
+	var tag8 = new Uint8Array(tagU);
+	var data = new Uint8Array(raw);
+	var footU = s2ab('4SPF');
+	var foot8 = new Uint8Array(footU);
+	var match = true;
+	for(var i = 0; i < 4 ;i++){
+		if(foot8[i] != data[data.length-4+i])
+			match = false;
+	}
+	//x y 4 S P F
+	//6 5 4 3 2 1
+	if(match){
+		var fstart = data.length - toUInt16(data,data.length-6);
+		//alert(fstart);
+		for(var i = fstart; i < data.length; i++){
+			var tagmatch = true;
+			for (var j = 0; j < tag8.byteLength; j++)
+			{
+				if (data[i+j] != tag8[j])
+				{
+					tagmatch = false;
+					break;
+				}
+			}
+			if (!tagmatch)
+			{
+				continue;
+			}
+			i += tagU.byteLength;
+			var start = toUInt32(data,i);
+			i += 4;
+			var end = toUInt32(data,i);
+			//alert(tag + '|' + start + '|' + end);
+			console.log(timer-new Date().getTime());
+			return raw.slice(start,end);
+		}
+	}else
+		return findOgg(raw,tag);
+}
 function findOgg(raw, tag)
 {
+	var timer = new Date().getTime();
 	var tagU = s2ab('[' + tag + ']');
 	var skip = s2ab(' "\r\n');
 	var oggU = s2ab('OggSxx');
@@ -84,12 +127,12 @@ function findOgg(raw, tag)
 			{
 				if (data[j] == fin8[0] && ofs[1] > 0)
 				{
-					ofs[0] = j;
+					ofs[0] = j+1;
 					break;
 				}
 				else if (data[j] == fin8[1] && ofs[0] < 0)
 				{
-					ofs[1] = j;
+					ofs[1] = j-1;
 				}
 			}
 			if (ofs[0] > 0 && ofs[1] > 0)
@@ -128,12 +171,12 @@ function findOgg(raw, tag)
 				{
 					if (data[j] == fin8[0] && ofs[1] > 0)
 					{
-						ofs[0] = j;
+						ofs[0] = j + 1;
 						break;
 					}
 					else if (data[j] == fin8[1] && ofs[0] < 0)
 					{
-						ofs[1] = j;
+						ofs[1] = j - 1;
 					}
 				}
 				if(ofs[0] > 0) {
@@ -145,9 +188,10 @@ function findOgg(raw, tag)
 				break;
 			}
 		}
-		if(end>0) 
-		return raw.slice(ptr,end);
+		console.log(timer-new Date().getTime());
+		if(end>0)
+		return {"data":raw.slice(ptr,end),"tag":tag};
 		else
-		return raw.slice(ptr);
+		return {"data":raw.slice(ptr,end),"tag":tag};
 	}
 }

@@ -6,8 +6,41 @@ function fixFFbug() {
 	}
 }
 function documentMouseDown(e) {
-	if(playerListItemMenu.parentNode && (e.target.parentNode != playerListItemMenu)){
-		playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+	if(playerListMenu.parentNode) {
+		var parent = e.target.parentNode;
+		var hide = false;
+		do{
+			if(parent == playerListMenu) {
+				hide = false;
+				break;
+			}else if(parent == document.body) {
+				hide = true;
+				break;
+			}else{
+				parent = parent.parentNode;
+			}
+		}while(true);
+		if(hide){
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		}
+	}
+	if(playerListItemMenu.parentNode) {
+		var parent = e.target.parentNode;
+		var hide = false;
+		do{
+			if(parent == playerListItemMenu) {
+				hide = false;
+				break;
+			}else if(parent == document.body) {
+				hide = true;
+				break;
+			}else{
+				parent = parent.parentNode;
+			}
+		}while(true);
+		if(hide){
+			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+		}
 	}
 	if(e.target == playerTitle || e.target==playerTime || e.target==playerHeader){
 		e.preventDefault();
@@ -19,11 +52,11 @@ function documentMouseDown(e) {
 		playerSettingsHeader.down = true;
 		playerSettingsHeader.oldx = e.clientX;
 		playerSettingsHeader.oldy = e.clientY;
-	}else if(e.target == playerCurrentVolume) {
+	}else if(e.target == playerCurrentVolume && !playerPlayer.error) {
 		e.preventDefault();
 		playerCurrentVolume.down = true;
 		playerCurrentVolume.oldx = e.clientX;
-	}else if(e.target == playerSeekbarCurrent) {
+	}else if(e.target == playerSeekbarCurrent && !playerPlayer.error) {
 		e.preventDefault();
 		playerSeekbarCurrent.down = true;
 		playerSeekbarCurrent.oldx = e.clientX;
@@ -60,16 +93,16 @@ function documentMouseMove(e) {
 		e.preventDefault();
 	}
 	if(playerHeader.down) {
-		var cr = Number(playerDiv.style.right.replace("px",""))
-		var cb = Number(playerDiv.style.bottom.replace("px",""))
+		var cr = Number(playerDiv.style.right.replace("px",""));
+		var cb = Number(playerDiv.style.bottom.replace("px",""));
 		playerDiv.style.right = (cr + playerHeader.oldx - e.clientX) + "px";
 		playerDiv.style.bottom = (cb + playerHeader.oldy - e.clientY) + "px";
 		playerHeader.oldx = e.clientX;
 		playerHeader.oldy = e.clientY;
 	}
 	if(playerSettingsHeader.down){
-		var cr = Number(playerSettings.style.right.replace("px",""))
-		var ct = Number(playerSettings.style.top.replace("px",""))
+		var cr = Number(playerSettings.style.right.replace("px",""));
+		var ct = Number(playerSettings.style.top.replace("px",""));
 		playerSettings.style.right = (cr + (playerSettingsHeader.oldx - e.clientX)) + "px";
 		playerSettings.style.top = (ct - (playerSettingsHeader.oldy - e.clientY)) + "px";
 		playerSettingsHeader.oldx = e.clientX;
@@ -98,6 +131,7 @@ function documentMouseMove(e) {
 		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
+
 function putInsidePage() {
 	if(playerDiv.clientHeight + Number(playerDiv.style.bottom.replace("px","")) > window.innerHeight) {
 		playerDiv.style.bottom = (window.innerHeight - playerDiv.clientHeight) + "px";
@@ -310,14 +344,11 @@ function showPlayer() {
 					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;} #playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: %1;}"},
 					{name:"Background color",format: "CSS color value",id:"BGColor",sets:".playerWindow {background-color:%1 !important}"},
 					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' height:'+data[1]+'px;}':'}');"},
-
 					{name:"Playlist margins",format:"left,right,top,bottom", id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
 					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"},
 					{name:"Volume slider width", id:"VolumeSliderWidth", sets:"#playerCurrentVolume{width:%1px}"},
-					{name:"Seekbar slider width", id:"SeekbarCurrentWidth", sets:"#playerSeekbarCurrent{width:%1px}"}
-					//name
-					]
+					{name:"Seekbar slider width", id:"SeekbarCurrentWidth", sets:"#playerSeekbarCurrent{width:%1px}"}];
 		for(var i = 0; i < data.length;i++){
 			var tr = create('tr',tbody);
 			var td = create('td', tr,{"class":"playerSettingLabel"});
@@ -331,7 +362,7 @@ function showPlayer() {
 			var input = create('input', td);
 			input.classList.add('playerSettingsInput');
 			input.id = "playerSettings"+data[i].id;
-			
+
 			input.sets = data[i].sets;
 			input.func = data[i].func;
 			input.addEventListener('change',function(){
@@ -340,22 +371,56 @@ function showPlayer() {
 		}
 		
 		
-		playerListItemMenu = create("div", null, {"id": "playerListItemMenu","class":"playerWindow"});
-		playerListItemMenuDelete = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenu = create('div', null, {"id": "playerListMenu","class":"playerWindow"});
+		playerListMenuDelete = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenuDelete.innerHTML = "Remove all...";
+		playerListMenuDelete.addEventListener('click', function(e) {
+			e.preventDefault();
+			if(confirm('Are you sure?')){
+				var items = playerList.getElementsByTagName('li');
+				while(items.length > 0){
+					items[items.length-1].remove();
+				}
+			}
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		});
+		playerListMenuAddLocal = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenuAddLocal.innerHTML = "Add local file...";
+		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput"});
+		playerListMenuAddLocalInput.addEventListener('change', function(e) {
+			loadAll(e.target.files[0]);
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		});
+		playerList.addEventListener('contextmenu', function(e) {
+			if(e.target == playerList){
+				e.preventDefault();
+				if(playerListMenu.parentNode) playerListMenu.parentNode.removeChild(playerListMenu);
+				document.body.appendChild(playerListMenu);
+				playerListMenu.style.left = e.clientX + 5 + "px";
+				playerListMenu.style.top = e.clientY + 5 + "px";
+			}
+		});
+		
+		
+		playerListItemMenu = create('div', null, {"id": "playerListItemMenu","class":"playerWindow"});
+		playerListItemMenuDelete = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+
 		playerListItemMenuDelete.innerHTML = "Delete";
 		playerListItemMenuDelete.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.remove();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenuMove = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+
+		playerListItemMenuMove = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenuMove.innerHTML = "Move";
 		playerListItemMenuMove.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.move();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenu.save = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		
+		playerListItemMenu.save = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenu.save.innerHTML = "Save...";
 		playerListItemMenu.save.addEventListener('click',function(e) {
 			if(!chrome){

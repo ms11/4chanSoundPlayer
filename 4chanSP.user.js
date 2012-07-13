@@ -6,9 +6,12 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.64
+// @version        0.65
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
+
+var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
+var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
 
 function insertAfter(referenceNode, newNode)
 {
@@ -36,6 +39,7 @@ function s2ab(text)
 	}
 	return foo;
 }
+
 function getPostID(o)
 {
 	var o = o.getAttribute('id');
@@ -48,7 +52,7 @@ function getPostID(o)
 function create(type, parent, attributes)
 {
     var element = document.createElement(type);
-    for (attr in attributes) {
+    for (var attr in attributes) {
         element.setAttribute(attr, attributes[attr]);
     }
     if (parent) {
@@ -64,24 +68,32 @@ function sectos(sec) {
 String.prototype.replaceAll = function(replaceTo,replaceWith) {
 	return this.replace(new RegExp(replaceTo,'g'),replaceWith);
 };
-function get_chrome(link, callback)
+
+function toUInt32(data,offset){
+	return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24);
+}
+function toUInt16(data,offset){
+	return data[offset] | data[offset + 1] << 8;
+}
+function get_chrome(url, callback, userState)
 {
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', link.realhref, true);
+	xhr.open('GET', url, true);
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.responseType = 'arraybuffer';
 	xhr.onload = function(e) {
 		if (this.status == 200)	{
-			callback(findOgg(this.response, link.tag), link);
+			callback(this.response,userState);
+			//callback(findOggWithFooter(this.response, link.tag), link);
 		}
 	};
 	xhr.send();
 }
 //modified to be able to pass thumbnail link
-function get_grease(link, callback) {
+function get_grease(url, callback, userState) {
 	GM_xmlhttpRequest({
 		method: "GET",
-		url: link.realhref,
+		url: url,
 		overrideMimeType: 'text/plain; charset=x-user-defined',
 		onload: function(e)
 		{
@@ -89,14 +101,179 @@ function get_grease(link, callback) {
 			{
 				var text = e.responseText;
 				var foo = s2ab(text);
-				callback(findOgg(foo, link.tag), link);
+				callback(foo,userState);
+				//callback(findOggWithFooter(foo, link.tag), link);
 			}
 		}
 	});
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
+function loadAll(file) {
+	if(!file.type){
+		xmlhttp(file,function(data,link) {
+			loadAllWithFooter(data,link);
+		}, file);
+	}else{
+		var reader = new FileReader();
+		reader.onload = function() {
+		loadAllWithFooter(reader.result);
+		};
+		reader.readAsArrayBuffer(file);
+	}
+}
+
+function loadAllWithFooter(raw,link) {
+		var data = new Uint8Array(raw);
+		var footU = s2ab('4SPF');
+		var foot8 = new Uint8Array(footU);
+		var match = true;
+		for(var i = 0; i < 4 ;i++){
+			if(foot8[i] != data[data.length-4+i])
+				match = false;
+		}
+		if(match) {
+			var tags=[];
+			var fstart = data.length - 6 - toUInt16(data,data.length-6);
+			for(var i = fstart;i < data.length-6;){
+				var taglen = data[i];
+				i++;
+				var tag = ""
+				for(var j = 0; j < taglen;j++){
+					tag += String.fromCharCode(data[i+j]);
+				}
+				i+=taglen;
+				var start = toUInt32(data,i);
+				i+=4;
+				var end = toUInt32(data,i);
+				i+=4;
+				tags.push({tag:tag,start:start,end:end});
+			}
+			showPlayer();
+			for(var i = 0; i < tags.length;i++){
+				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag,link);
+			}
+		}else{
+			loadAllFromLocal(raw,link);
+		}
+}
+function loadAllFromLocal(raw,link) {
+	var oggU = s2ab('OggSxx');
+	var ogg8 = new Uint8Array(oggU);
+	ogg8[4] = 0;
+	ogg8[5] = 2;
+	var data = new Uint8Array(raw);
+	var sounds = [];
+	var cont = true;
+	var oldptr = 0;
+	do{
+		var ptr = 0;
+		for (var i = oldptr; i < data.byteLength - 10; i++)
+		{
+			var match = true;
+			for (var j = 0; j < ogg8.byteLength; j++)
+			{
+				if (data[i+j] != ogg8[j])
+				{
+					match = false;
+					break;
+				}
+			}
+			if (match)
+			{
+				ptr = i;
+				break;
+			}
+		}
+		if (ptr > oldptr)
+		{
+			var ofs = [-1,-1];
+			var find = s2ab('[]');
+			var fin8 = new Uint8Array(find);
+			for (var j = ptr; j > ptr - 100; j--)
+			{
+				if (data[j] == fin8[0] && ofs[1] > 0)
+				{
+					ofs[0] = j+1;
+					break;
+				}
+				else if (data[j] == fin8[1] && ofs[0] < 0)
+				{
+					ofs[1] = j-1;
+				}
+			}
+			if (ofs[0] > 0 && ofs[1] > 0)
+			{
+				var tag = '';
+				for (var j = ofs[0]; j <= ofs[1]; j++)
+				{
+					tag += String.fromCharCode(data[j]);
+				}
+				sounds.push({data: null,start:ptr,tag: tag});
+				if(sounds.length > 1) {
+					var id = sounds.length-2;
+					sounds[id].data = raw.slice(sounds[id].start,ptr - sounds[id].tag.length);
+				}
+			}
+			oldptr = ptr;
+		}else{
+			cont = false;
+		}
+	}while(cont);
+	if(sounds.length > 0) {
+		var id = sounds.length-1;
+		sounds[id].data = raw.slice(sounds[id].start);
+		showPlayer();		
+		for(var i = 0; i < sounds.length;i++){
+			var tag = sounds[i].tag;
+			addMusic({data:sounds[i].data,tag:tag},tag,link);
+		}
+	}
+}
+function findOggWithFooter(raw,tag) {
+	var timer = new Date().getTime();
+	var tagU = s2ab(tag);
+	var tag8 = new Uint8Array(tagU);
+	var data = new Uint8Array(raw);
+	var footU = s2ab('4SPF');
+	var foot8 = new Uint8Array(footU);
+	var match = true;
+	for(var i = 0; i < 4 ;i++){
+		if(foot8[i] != data[data.length-4+i])
+			match = false;
+	}
+	//x y 4 S P F
+	//6 5 4 3 2 1
+	if(match){
+		var fstart = data.length - toUInt16(data,data.length-6);
+		//alert(fstart);
+		for(var i = fstart; i < data.length; i++){
+			var tagmatch = true;
+			for (var j = 0; j < tag8.byteLength; j++)
+			{
+				if (data[i+j] != tag8[j])
+				{
+					tagmatch = false;
+					break;
+				}
+			}
+			if (!tagmatch)
+			{
+				continue;
+			}
+			i += tagU.byteLength;
+			var start = toUInt32(data,i);
+			i += 4;
+			var end = toUInt32(data,i);
+			//alert(tag + '|' + start + '|' + end);
+			console.log(timer-new Date().getTime());
+			return raw.slice(start,end);
+		}
+	}else
+		return findOgg(raw,tag);
+}
 function findOgg(raw, tag)
 {
+	var timer = new Date().getTime();
 	var tagU = s2ab('[' + tag + ']');
 	var skip = s2ab(' "\r\n');
 	var oggU = s2ab('OggSxx');
@@ -181,12 +358,12 @@ function findOgg(raw, tag)
 			{
 				if (data[j] == fin8[0] && ofs[1] > 0)
 				{
-					ofs[0] = j;
+					ofs[0] = j+1;
 					break;
 				}
 				else if (data[j] == fin8[1] && ofs[0] < 0)
 				{
-					ofs[1] = j;
+					ofs[1] = j-1;
 				}
 			}
 			if (ofs[0] > 0 && ofs[1] > 0)
@@ -225,12 +402,12 @@ function findOgg(raw, tag)
 				{
 					if (data[j] == fin8[0] && ofs[1] > 0)
 					{
-						ofs[0] = j;
+						ofs[0] = j + 1;
 						break;
 					}
 					else if (data[j] == fin8[1] && ofs[0] < 0)
 					{
-						ofs[1] = j;
+						ofs[1] = j - 1;
 					}
 				}
 				if(ofs[0] > 0) {
@@ -242,10 +419,11 @@ function findOgg(raw, tag)
 				break;
 			}
 		}
-		if(end>0) 
-		return raw.slice(ptr,end);
+		console.log(timer-new Date().getTime());
+		if(end>0)
+		return {"data":raw.slice(ptr,end),"tag":tag};
 		else
-		return raw.slice(ptr);
+		return {"data":raw.slice(ptr,end),"tag":tag};
 	}
 }
 function rehyperlink(target,second) {
@@ -275,11 +453,11 @@ function rehyperlink(target,second) {
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
 			this.innerHTML = '[loading]';
-            xmlhttp(this, function(music, link) {   
+            xmlhttp(this.realhref, function(data,rlink) {   
 				showPlayer();
-				addMusic(music,link.tag,link.realhref);
-				link.innerHTML = '[' + tag + ']';
-			});
+				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+				rlink.innerHTML = '[' + rlink.tag + ']';
+			},this);
 		});
 	}
 }
@@ -320,6 +498,7 @@ function hyperlinkone(target) {
 							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
 								continue;
 							}
+							addLoadAllLink(p);
 							repeat = true;
 							var href = a.href;
 							var code = match[2];
@@ -333,11 +512,11 @@ function hyperlinkone(target) {
 							link.addEventListener('click', function(e) {
 								e.preventDefault();
 								this.innerHTML = '[loading]';
-								xmlhttp(this, function(music, rlink) {   
+								xmlhttp(link.realhref, function(data, rlink) {   
 									showPlayer();
-									addMusic(music,rlink.tag,rlink.realhref);
+									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 									rlink.innerHTML = '[' + rlink.tag + ']';
-								});
+								},this);
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -350,6 +529,8 @@ function hyperlinkone(target) {
 						continue;
 					}
 					repeat = true;
+					
+					addLoadAllLink(p);
 					var href = a.href;
 					var code = match[2];
 					var link = document.createElement('a');
@@ -362,11 +543,11 @@ function hyperlinkone(target) {
 					link.addEventListener('click', function(e) {
 						e.preventDefault();
 						this.innerHTML = '[loading]';
-						xmlhttp(this, function(music, rlink) {   
+						xmlhttp(this.realhref, function(data, rlink) {   
 							showPlayer();
-							addMusic(music,rlink.tag,rlink.realhref);
+							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 							rlink.innerHTML = '[' + rlink.tag + ']';
-						});
+						},this);
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);
@@ -380,18 +561,8 @@ function hyperlinkone(target) {
 
 
 function hyperlink() {
-	var tmpDate = (new Date()).getTime();
-	if (tmpDate < lastHyper + 2000) {
-		return;
-	}
-	lastHyper = tmpDate;
-	var newLastPost = null;
 	var posts = archive? 'article':'blockquote';
 	posts = document.getElementsByTagName(posts);
-	newLastPost = getPostID(posts[posts.length-1]);
-	if (newLastPost == lastPost) {
-		return;
-	}
 	for (var i = 0; i < posts.length; i++) {
 		// dom-insertion listener lags the fuck out on longer threads
 		if (lastPost && getPostID(posts[i]) <= lastPost) {
@@ -400,10 +571,40 @@ function hyperlink() {
 		}
 		hyperlinkone(posts[i]);
 	}
-	lastPost = newLastPost;
 }
-var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
-var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
+
+function addLoadAllLink(post) {
+	if(!post.hasAllLink){
+		var to = null;
+		if(!archive) {
+		var id = getPostID(post);
+		var pi = document.getElementById('f'+id);
+		to = byClass(pi,'fileInfo');
+		}else{
+			var head = post.parentNode.getElementsByTagName('header')[0];
+			head = head.getElementsByClassName('post_data')[0];
+			to = head.getElementsByClassName('post_controls')[0];
+		}
+		var loadAllLink = create('a',to, {"href":"#","class":"playerLoadAllLink"});
+		loadAllLink.innerHTML = "Load all sounds";
+		if(archive){
+			loadAllLink.classList.add('btnr');
+			loadAllLink.classList.add('parent');
+		}
+		loadAllLink.addEventListener('click',function(e) {
+			e.preventDefault();
+			var a = null;
+			if(!archive){
+			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+			}else{
+				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
+			}
+			if(a)
+				loadAll(a.href);
+		});
+		post.hasAllLink = true;
+	}
+}
 
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
@@ -438,8 +639,41 @@ function fixFFbug() {
 	}
 }
 function documentMouseDown(e) {
-	if(playerListItemMenu.parentNode && (e.target.parentNode != playerListItemMenu)){
-		playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+	if(playerListMenu.parentNode) {
+		var parent = e.target.parentNode;
+		var hide = false;
+		do{
+			if(parent == playerListMenu) {
+				hide = false;
+				break;
+			}else if(parent == document.body) {
+				hide = true;
+				break;
+			}else{
+				parent = parent.parentNode;
+			}
+		}while(true);
+		if(hide){
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		}
+	}
+	if(playerListItemMenu.parentNode) {
+		var parent = e.target.parentNode;
+		var hide = false;
+		do{
+			if(parent == playerListItemMenu) {
+				hide = false;
+				break;
+			}else if(parent == document.body) {
+				hide = true;
+				break;
+			}else{
+				parent = parent.parentNode;
+			}
+		}while(true);
+		if(hide){
+			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+		}
 	}
 	if(e.target == playerTitle || e.target==playerTime || e.target==playerHeader){
 		e.preventDefault();
@@ -451,11 +685,11 @@ function documentMouseDown(e) {
 		playerSettingsHeader.down = true;
 		playerSettingsHeader.oldx = e.clientX;
 		playerSettingsHeader.oldy = e.clientY;
-	}else if(e.target == playerCurrentVolume) {
+	}else if(e.target == playerCurrentVolume && !playerPlayer.error) {
 		e.preventDefault();
 		playerCurrentVolume.down = true;
 		playerCurrentVolume.oldx = e.clientX;
-	}else if(e.target == playerSeekbarCurrent) {
+	}else if(e.target == playerSeekbarCurrent && !playerPlayer.error) {
 		e.preventDefault();
 		playerSeekbarCurrent.down = true;
 		playerSeekbarCurrent.oldx = e.clientX;
@@ -492,16 +726,16 @@ function documentMouseMove(e) {
 		e.preventDefault();
 	}
 	if(playerHeader.down) {
-		var cr = Number(playerDiv.style.right.replace("px",""))
-		var cb = Number(playerDiv.style.bottom.replace("px",""))
+		var cr = Number(playerDiv.style.right.replace("px",""));
+		var cb = Number(playerDiv.style.bottom.replace("px",""));
 		playerDiv.style.right = (cr + playerHeader.oldx - e.clientX) + "px";
 		playerDiv.style.bottom = (cb + playerHeader.oldy - e.clientY) + "px";
 		playerHeader.oldx = e.clientX;
 		playerHeader.oldy = e.clientY;
 	}
 	if(playerSettingsHeader.down){
-		var cr = Number(playerSettings.style.right.replace("px",""))
-		var ct = Number(playerSettings.style.top.replace("px",""))
+		var cr = Number(playerSettings.style.right.replace("px",""));
+		var ct = Number(playerSettings.style.top.replace("px",""));
 		playerSettings.style.right = (cr + (playerSettingsHeader.oldx - e.clientX)) + "px";
 		playerSettings.style.top = (ct - (playerSettingsHeader.oldy - e.clientY)) + "px";
 		playerSettingsHeader.oldx = e.clientX;
@@ -530,6 +764,7 @@ function documentMouseMove(e) {
 		playerSeekbarCurrent.oldx = e.clientX;
 	}
 }
+
 function putInsidePage() {
 	if(playerDiv.clientHeight + Number(playerDiv.style.bottom.replace("px","")) > window.innerHeight) {
 		playerDiv.style.bottom = (window.innerHeight - playerDiv.clientHeight) + "px";
@@ -742,14 +977,11 @@ function showPlayer() {
 					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;} #playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: %1;}"},
 					{name:"Background color",format: "CSS color value",id:"BGColor",sets:".playerWindow {background-color:%1 !important}"},
 					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' height:'+data[1]+'px;}':'}');"},
-
 					{name:"Playlist margins",format:"left,right,top,bottom", id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
 					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"},
 					{name:"Volume slider width", id:"VolumeSliderWidth", sets:"#playerCurrentVolume{width:%1px}"},
-					{name:"Seekbar slider width", id:"SeekbarCurrentWidth", sets:"#playerSeekbarCurrent{width:%1px}"}
-					//name
-					]
+					{name:"Seekbar slider width", id:"SeekbarCurrentWidth", sets:"#playerSeekbarCurrent{width:%1px}"}];
 		for(var i = 0; i < data.length;i++){
 			var tr = create('tr',tbody);
 			var td = create('td', tr,{"class":"playerSettingLabel"});
@@ -763,7 +995,7 @@ function showPlayer() {
 			var input = create('input', td);
 			input.classList.add('playerSettingsInput');
 			input.id = "playerSettings"+data[i].id;
-			
+
 			input.sets = data[i].sets;
 			input.func = data[i].func;
 			input.addEventListener('change',function(){
@@ -772,22 +1004,56 @@ function showPlayer() {
 		}
 		
 		
-		playerListItemMenu = create("div", null, {"id": "playerListItemMenu","class":"playerWindow"});
-		playerListItemMenuDelete = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenu = create('div', null, {"id": "playerListMenu","class":"playerWindow"});
+		playerListMenuDelete = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenuDelete.innerHTML = "Remove all...";
+		playerListMenuDelete.addEventListener('click', function(e) {
+			e.preventDefault();
+			if(confirm('Are you sure?')){
+				var items = playerList.getElementsByTagName('li');
+				while(items.length > 0){
+					items[items.length-1].remove();
+				}
+			}
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		});
+		playerListMenuAddLocal = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
+		playerListMenuAddLocal.innerHTML = "Add local file...";
+		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput"});
+		playerListMenuAddLocalInput.addEventListener('change', function(e) {
+			loadAll(e.target.files[0]);
+			playerListMenu.parentNode.removeChild(playerListMenu);
+		});
+		playerList.addEventListener('contextmenu', function(e) {
+			if(e.target == playerList){
+				e.preventDefault();
+				if(playerListMenu.parentNode) playerListMenu.parentNode.removeChild(playerListMenu);
+				document.body.appendChild(playerListMenu);
+				playerListMenu.style.left = e.clientX + 5 + "px";
+				playerListMenu.style.top = e.clientY + 5 + "px";
+			}
+		});
+		
+		
+		playerListItemMenu = create('div', null, {"id": "playerListItemMenu","class":"playerWindow"});
+		playerListItemMenuDelete = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+
 		playerListItemMenuDelete.innerHTML = "Delete";
 		playerListItemMenuDelete.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.remove();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenuMove = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+
+		playerListItemMenuMove = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenuMove.innerHTML = "Move";
 		playerListItemMenuMove.addEventListener('click',function(e) {
 			e.preventDefault();
 			playerListItemMenu.item.move();
 			playerListItemMenu.parentNode.removeChild(playerListItemMenu);
 		});
-		playerListItemMenu.save = create("a", playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
+		
+		playerListItemMenu.save = create('a', playerListItemMenu, {"href":"#","class":"playerListItemMenuLink"});
 		playerListItemMenu.save.innerHTML = "Save...";
 		playerListItemMenu.save.addEventListener('click',function(e) {
 			if(!chrome){
@@ -834,20 +1100,35 @@ function showMoverTargets(show) {
 	}
 }
 
-function addMusic(data,tag,url) {
+function addMusic(resp,tag,url) {
+    data = resp.data;
 	var list = playerList;
 	var item = create('li',list, {"class":"playerListItem"});
 	//item.innerHTML = tag;
 	var tagelem = create('span',item,{"class":"playerListItemTag"});
-	
 	tagelem.innerHTML = tag;
 	tagelem.title = tag;
+	if(resp.tag) {
+		var realtag = tag.replace(' ','');
+		if(resp.tag != realtag && resp.tag != tag){
+		tagelem.innerHTML = "(!) " + tag;
+		tagelem.title = "'" + tag + "' was not found, playing '" + resp.tag + "' instead.";
+		}
+	}
 	item.move = function() {
 		playerMovingListItem = this;
 		showMoverTargets(false);
 		showMoverTargets();
 	};
 	item.remove = function() {
+		if(this.getAttribute('playing') == "true") {
+			playerPlayer.pause();
+			playerPlayer.src = "";
+			playerImage.src = "";
+			playerTitle.innerHTML = "";
+			playerTime.innerHTML = "";
+			playerSeekbarCurrent.style.left = "0px";
+		}
 		(window.webkitURL || window.URL).revokeObjectURL(this.bloburl);
 		this.parentNode.removeChild(this);
 	};
@@ -943,6 +1224,23 @@ function nextMusic(auto) {
 	}
 	if(items.length > 0) items[0].tagelem.click();
 }
+function updateUserCSS() {
+	var table = document.getElementById('playerSettings');
+	var elems = table.getElementsByTagName('input');
+	playerSaveData.userCSS = "";
+	for(var i = 0; i < elems.length;i++){
+		if(elems[i].value){
+			if(elems[i].sets){
+				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
+				playerSaveData.userCSS += add;
+			}
+			else if(elems[i].func){
+				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
+			}
+		}
+	}
+	addCSS();
+}
 
 function addCSS() {
 	if(!playerStyle){
@@ -973,8 +1271,9 @@ function addCSS() {
 			'#playerTime {width:160px; height:15px; overflow:hidden; margin-left:auto; margin-right:auto;}'+
 			'#playerSettings {background: #e7e7e7; position: absolute; max-width:none;}'+
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
-			'#playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
-			'.playerListItemMenuLink {display:block;}';
+			'#playerListMenu, #playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
+			'.playerListItemMenuLink {display:block;}'+
+			'#playerListMenuAddLocalInput{opacity: 0; width: 100%; position: absolute; left: 0px; height: 50%; cursor: pointer;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 
@@ -987,23 +1286,6 @@ function addCSS() {
 		playerUserStyle.innerHTML = playerSaveData.userCSS;
 	}
 }
-function updateUserCSS() {
-	var table = document.getElementById('playerSettings');
-	var elems = table.getElementsByTagName('input');
-	playerSaveData.userCSS = "";
-	for(var i = 0; i < elems.length;i++){
-		if(elems[i].value){
-			if(elems[i].sets){
-				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
-				playerSaveData.userCSS += add;
-			}
-			else if(elems[i].func){
-				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
-			}
-		}
-	}
-	addCSS();
-}
 hyperlink();
 if(!archive){
 	document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
@@ -1015,4 +1297,17 @@ if(!archive){
 			hyperlinkone(e.target);
 		}
 	});
+	var relNode = document.getElementById('settingsWindowLink').nextSibling;
+	var playerShowLink = create('a',null,{'class':"settingsWindowLinkBot"});
+	var bracket = document.createTextNode('] [');
+	var elem = document.getElementById('navtopr');
+	elem.insertBefore(playerShowLink,relNode);
+	elem.insertBefore(bracket,playerShowLink);
+	playerShowLink.innerHTML = "Show player";
+	playerShowLink.href = "#";
+	playerShowLink.addEventListener('click',function(e) {
+		e.preventDefault();
+		showPlayer();
+	});
+	
 }

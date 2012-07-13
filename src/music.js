@@ -9,20 +9,35 @@ function showMoverTargets(show) {
 	}
 }
 
-function addMusic(data,tag,url) {
+function addMusic(resp,tag,url) {
+    data = resp.data;
 	var list = playerList;
 	var item = create('li',list, {"class":"playerListItem"});
 	//item.innerHTML = tag;
 	var tagelem = create('span',item,{"class":"playerListItemTag"});
-	
 	tagelem.innerHTML = tag;
 	tagelem.title = tag;
+	if(resp.tag) {
+		var realtag = tag.replace(' ','');
+		if(resp.tag != realtag && resp.tag != tag){
+		tagelem.innerHTML = "(!) " + tag;
+		tagelem.title = "'" + tag + "' was not found, playing '" + resp.tag + "' instead.";
+		}
+	}
 	item.move = function() {
 		playerMovingListItem = this;
 		showMoverTargets(false);
 		showMoverTargets();
 	};
 	item.remove = function() {
+		if(this.getAttribute('playing') == "true") {
+			playerPlayer.pause();
+			playerPlayer.src = "";
+			playerImage.src = "";
+			playerTitle.innerHTML = "";
+			playerTime.innerHTML = "";
+			playerSeekbarCurrent.style.left = "0px";
+		}
 		(window.webkitURL || window.URL).revokeObjectURL(this.bloburl);
 		this.parentNode.removeChild(this);
 	};

@@ -1,5 +1,3 @@
-var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
-var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
 
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
