@@ -1,19 +1,31 @@
-function updateUserCSS() {
-	var table = document.getElementById('playerSettings');
-	var elems = table.getElementsByTagName('input');
-	playerSaveData.userCSS = "";
-	for(var i = 0; i < elems.length;i++){
-		if(elems[i].value){
-			if(elems[i].sets){
-				var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',elems[i].value);
-				playerSaveData.userCSS += add;
-			}
-			else if(elems[i].func){
-				playerSaveData.userCSS += (playerSaveData.userCSS.length<1?"":" ")+ new Function("self",elems[i].func)(elems[i]);
+function updateUserCSS(input) {
+	if(input){
+		if(!playerSaveData.userCSS) {
+			playerSaveData.userCSS = {};
+		}
+		playerSaveData.userCSS[input.realid] = input.value;
+	}
+	if(!playerUserStyle && playerSaveData.userCSS) {
+		playerUserStyle = document.createElement('style');
+		playerUserStyle.setAttribute('type', 'text/css');
+		document.getElementsByTagName('head')[0].appendChild(playerUserStyle);
+	}
+	if(playerUserStyle){
+		playerUserStyle.innerHTML = ""
+		var table = document.getElementById('playerSettings');
+		var elems = table.getElementsByTagName('input');
+		for(var i = 0; i < elems.length;i++){
+			if(elems[i].value){
+				if(elems[i].sets && playerSaveData.userCSS[elems[i].realid]){
+					var add = (playerSaveData.userCSS.length<1?"":" ")+elems[i].sets.replaceAll('%1',playerSaveData.userCSS[elems[i].realid]);
+					playerUserStyle.innerHTML += add;
+				}
+				else if(elems[i].func && playerSaveData.userCSS[elems[i].realid]){
+					playerUserStyle.innerHTML += (playerSaveData.userCSS.length<1?"":" ")+ elems[i].func(playerSaveData.userCSS[elems[i].realid]);
+				}
 			}
 		}
 	}
-	addCSS();
 }
 
 function addCSS() {
@@ -50,13 +62,5 @@ function addCSS() {
 			'#playerListMenuAddLocalInput{opacity: 0; width: 100%; position: absolute; left: 0px; height: 50%; cursor: pointer;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
-
-	if(!playerUserStyle && playerSaveData.userCSS) {
-		playerUserStyle = document.createElement('style');
-		playerUserStyle.setAttribute('type', 'text/css');
-		playerUserStyle.innerHTML = playerSaveData.userCSS;
-		document.getElementsByTagName('head')[0].appendChild(playerUserStyle);
-	}else if(playerSaveData.userCSS) {
-		playerUserStyle.innerHTML = playerSaveData.userCSS;
-	}
+	updateUserCSS();
 }
