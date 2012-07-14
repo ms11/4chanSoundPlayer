@@ -151,6 +151,8 @@ function loadConf() {
 	}else if(playerSaveData.css) {		
 		playerSaveData.css = undefined;
 		playerSaveData.saveVer = undefined;
+	}else if(playerSaveData.userCSS && (playerSaveData.userCSS.length)){
+		playerSaveData.userCSS = {};
 	}
 }
 
@@ -174,13 +176,12 @@ function showPlayer() {
 		playerVolume = create('div', playerVolumeSeekHeader, {"id": "playerVolume"});
 		playerCurrentVolume = create('div',playerVolume, {"id": "playerCurrentVolume"});
 	
-		
-		playerVolume.addEventListener("DOMMouseScroll",function(e) {
+		var scrollfunc = function(e) {
 			e.preventDefault();
 			var n = Number(playerCurrentVolume.style.left.replace("px",""));
-			if(e.detail<0) {
+			if(e.detail < 0 || e.wheelDelta > 0) {
 				n+=1;
-			}else if(e.detail>0) {
+			}else if(e.detail > 0 || e.wheelDelta < 0) {
 				n-=1;
 			}
 			
@@ -191,7 +192,11 @@ function showPlayer() {
 			if(n < 0 || n > max-width)return;
 			playerCurrentVolume.style.left = n +"px";
 			playerPlayer.volume=n/(max-width);
-		});
+		};
+		
+		
+		playerVolume.addEventListener("DOMMouseScroll",scrollfunc);
+		playerVolume.addEventListener("mousewheel",scrollfunc);
 		
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
@@ -326,8 +331,10 @@ function showPlayer() {
 			e.preventDefault();
 			if(playerSettings.style.display == "none")
 				playerSettings.style.display = "block";
-			else
+			else{
 				playerSettings.style.display = "none";
+				localStorage.setItem('4chanSP', JSON.stringify(playerSaveData));
+			}
 		});
 		playerSettings = create('table', playerDiv, {"id":"playerSettings","class":"playerWindow"});
 		playerSettings.style.right = "210px";
@@ -343,8 +350,8 @@ function showPlayer() {
 		var data = [{name:"Text color",format:"CSS color value",id:"LinkColor",sets:"#playerCurrentVolume, #playerSeekbarCurrent {background-color:%1} .playerWindow > * > * {color:%1 !important;} .playerWindow > * {color:%1 !important;} .playerWindow a {color:%1 !important;} .playerWindow a:visited {color:%1 !important;}"},
 					{name:"Control hover color",format:"CSS color value",id:"HoverColor",sets:".playerWindow a:hover, .playerListItemTag:hover{color:%1 !important;} #playerCurrentVolume:hover, #playerSeekbarCurrent:hover {background: %1;}"},
 					{name:"Background color",format: "CSS color value",id:"BGColor",sets:".playerWindow {background-color:%1 !important}"},
-					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: "var data=self.value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' height:'+data[1]+'px;}':'}');"},
-					{name:"Playlist margins",format:"left,right,top,bottom", id:"PlaylistMargins", func: "var data=self.value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';"},
+					{name:"Playlist size",format:"Width x Height",id:"PlaylistSize",func: function(value) {var data=value.split('x'); data[0]=data[0].trim(); data[1]=data[1].trim(); return '#playerList {'+(data[0]?'width:'+data[0]+'px;':'') + (data[1]?' height:'+data[1]+'px;}':'}');}},
+					{name:"Playlist margins",format:"left,right,top,bottom", id:"PlaylistMargins", func: function(value) {var data=value.split(','); return '#playerList {'+(data[0]?'margin-left:'+data[0]+'px;':'') + (data[1]?'margin-right:'+data[1]+'px;':'') + (data[2]?'margin-top:'+data[2]+'px;':'') + (data[3]?'margin-bottom:'+data[3]+'px;':'')+'}';}},
 					{name:"List item background color", format:"CSS color value", id:"ListItemBGColor",sets:".playerListItem{background-color:%1}"},
 					{name:"Played list item bg color", format:"CSS color value", id:"PlayedListItemBGColor",sets:".playerListItem[playing=true]{background-color:%1}"},
 					{name:"Volume slider width", id:"VolumeSliderWidth", sets:"#playerCurrentVolume{width:%1px}"},
@@ -362,11 +369,14 @@ function showPlayer() {
 			var input = create('input', td);
 			input.classList.add('playerSettingsInput');
 			input.id = "playerSettings"+data[i].id;
-
+			input.realid = data[i].id;
+			if(playerSaveData.userCSS && playerSaveData.userCSS[input.realid]){
+				input.value = playerSaveData.userCSS[input.realid];
+			}
 			input.sets = data[i].sets;
 			input.func = data[i].func;
 			input.addEventListener('change',function(){
-				updateUserCSS();
+				updateUserCSS(this);
 			});
 		}
 		
