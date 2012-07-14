@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.67
+// @version        0.68
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -151,13 +151,13 @@ function loadAllWithFooter(raw,link,cb) {
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){
 				addMusic({data:raw.slice(tags[i].start,tags[i].end),tag:tags[i].tag},tags[i].tag,link);
-				cb();
 			}
+			cb();
 		}else{
-			loadAllFromLocal(raw,link,cb);
+			loadAllFromData(raw,link,cb);
 		}
 }
-function loadAllFromLocal(raw,link,cb) {
+function loadAllFromData(raw,link,cb) {
 	var oggU = s2ab('OggSxx');
 	var ogg8 = new Uint8Array(oggU);
 	ogg8[4] = 0;
@@ -215,7 +215,7 @@ function loadAllFromLocal(raw,link,cb) {
 					sounds[id].data = raw.slice(sounds[id].start,ptr - sounds[id].tag.length);
 				}
 			}
-			oldptr = ptr;
+			oldptr = ptr + 1;
 		}else{
 			cont = false;
 		}
@@ -227,8 +227,8 @@ function loadAllFromLocal(raw,link,cb) {
 		for(var i = 0; i < sounds.length;i++){
 			var tag = sounds[i].tag;
 			addMusic({data:sounds[i].data,tag:tag},tag,link);
-			cb();
 		}
+		cb();
 	}
 }
 function findOggWithFooter(raw,tag) {
