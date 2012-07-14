@@ -151,20 +151,21 @@ function addLoadAllLink(post) {
 		if(!archive) {
 		var id = getPostID(post);
 		var pi = document.getElementById('f'+id);
-		to = byClass(pi,'fileInfo');
+		to = pi.getElementsByClassName('fileInfo')[0];
 		}else{
 			var head = post.parentNode.getElementsByTagName('header')[0];
 			head = head.getElementsByClassName('post_data')[0];
 			to = head.getElementsByClassName('post_controls')[0];
 		}
 		var loadAllLink = create('a',to, {"href":"#","class":"playerLoadAllLink"});
-		loadAllLink.innerHTML = "Load all sounds";
+		loadAllLink.innerHTML = " Load all sounds";
 		if(archive){
 			loadAllLink.classList.add('btnr');
 			loadAllLink.classList.add('parent');
 		}
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
+			e.target.innerHTML = " loading...";
 			var a = null;
 			if(!archive){
 			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
@@ -172,7 +173,7 @@ function addLoadAllLink(post) {
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href);
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
 		});
 		post.hasAllLink = true;
 	}
