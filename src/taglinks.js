@@ -1,5 +1,21 @@
 function rehyperlink(target,second) {
-
+	var list = target.getElementsByClassName('playerLoadAllLink');
+	for(var i = 0; i < list.length;i++){
+		if(list[i].rehypered) continue;
+		list[i].rehypered = true;
+		list[i].addEventListener('click',function(e) {
+			e.preventDefault();
+			e.target.innerHTML = " loading...";
+			var a = null;
+			if(!archive){
+			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+			}else{
+				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
+			}
+			if(a)
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+		});
+	}
 	var links = target.getElementsByClassName('soundlink');
 	if(links.length < 1) {
 		if(second) return;
@@ -20,6 +36,8 @@ function rehyperlink(target,second) {
 	}
 	for(var i = 0;i < links.length;i++){
 		var link = links[i];
+		if(link.rehypered) continue;
+		link.rehypered = true;
 		link.realhref = a.href;
 		link.tag = link.innerHTML.replace("[","").replace("]","");
 		link.addEventListener('click', function(e) {
