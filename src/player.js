@@ -174,13 +174,12 @@ function showPlayer() {
 		playerVolume = create('div', playerVolumeSeekHeader, {"id": "playerVolume"});
 		playerCurrentVolume = create('div',playerVolume, {"id": "playerCurrentVolume"});
 	
-		
-		playerVolume.addEventListener("DOMMouseScroll",function(e) {
+		var scrollfunc = function(e) {
 			e.preventDefault();
 			var n = Number(playerCurrentVolume.style.left.replace("px",""));
-			if(e.detail<0) {
+			if(e.detail < 0 || e.wheelDelta > 0) {
 				n+=1;
-			}else if(e.detail>0) {
+			}else if(e.detail > 0 || e.wheelDelta < 0) {
 				n-=1;
 			}
 			
@@ -191,7 +190,11 @@ function showPlayer() {
 			if(n < 0 || n > max-width)return;
 			playerCurrentVolume.style.left = n +"px";
 			playerPlayer.volume=n/(max-width);
-		});
+		};
+		
+		
+		playerVolume.addEventListener("DOMMouseScroll",scrollfunc);
+		playerVolume.addEventListener("mousewheel",scrollfunc);
 		
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
