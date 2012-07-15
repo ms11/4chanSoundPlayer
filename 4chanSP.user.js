@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.69
+// @version        0.70
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -631,7 +631,6 @@ var playerTitle = null;
 var playerTime = null;
 var playerPlayer = null;
 var newWindow = null;
-var playerCompact = false;
 var playerCurrentDuration = 0;
 var playerMovingListItem = null;
 var playerSaveData = null;
@@ -645,7 +644,7 @@ var playerSeekbar = null;
 var playerSeekbarCurrent = null;
 
 var playerUserStyle = null;
-var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:{}};
+var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,compact:false,userCSS:{}};
 var playerSettingsHeader = null;
 function fixFFbug() {
 	if (!chrome && !playerPlayer.paused) { 
@@ -797,11 +796,14 @@ function loadConf() {
 	playerSaveData = JSON.parse(localStorage.getItem("4chanSP"));
 	if(!playerSaveData) {
 		playerSaveData = playerDefault;
-	}else if(playerSaveData.css) {		
+	}else if(playerSaveData.css) {
 		playerSaveData.css = undefined;
 		playerSaveData.saveVer = undefined;
 	}else if(playerSaveData.userCSS && (playerSaveData.userCSS.length)){
 		playerSaveData.userCSS = {};
+	}
+	if(!playerSaveData.compact){
+		playerSaveData.compact = false;
 	}
 }
 
@@ -1107,6 +1109,7 @@ function showPlayer() {
 		
 		isPlayer = true;
 		document.body.appendChild(playerDiv);
+		swmode(playerSaveData.compact);
 		addCSS();
 		
 	}
@@ -1114,8 +1117,8 @@ function showPlayer() {
 
 function swmode(tocompact) {
 	if(tocompact === undefined) {
-		tocompact = !playerCompact;
-		playerCompact = !playerCompact;
+		tocompact = !playerSaveData.compact;
+		playerSaveData.compact = !playerSaveData.compact;
 	}
 	var s = tocompact ? "none" : "block";
 	playerImage.style.display = s;

@@ -148,11 +148,14 @@ function loadConf() {
 	playerSaveData = JSON.parse(localStorage.getItem("4chanSP"));
 	if(!playerSaveData) {
 		playerSaveData = playerDefault;
-	}else if(playerSaveData.css) {		
+	}else if(playerSaveData.css) {
 		playerSaveData.css = undefined;
 		playerSaveData.saveVer = undefined;
 	}else if(playerSaveData.userCSS && (playerSaveData.userCSS.length)){
 		playerSaveData.userCSS = {};
+	}
+	if(!playerSaveData.compact){
+		playerSaveData.compact = false;
 	}
 }
 
@@ -458,6 +461,7 @@ function showPlayer() {
 		
 		isPlayer = true;
 		document.body.appendChild(playerDiv);
+		swmode(playerSaveData.compact);
 		addCSS();
 		
 	}
@@ -465,8 +469,8 @@ function showPlayer() {
 
 function swmode(tocompact) {
 	if(tocompact === undefined) {
-		tocompact = !playerCompact;
-		playerCompact = !playerCompact;
+		tocompact = !playerSaveData.compact;
+		playerSaveData.compact = !playerSaveData.compact;
 	}
 	var s = tocompact ? "none" : "block";
 	playerImage.style.display = s;
