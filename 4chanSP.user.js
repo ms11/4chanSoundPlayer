@@ -524,7 +524,26 @@ function hyperlinkone(target) {
 							link.href = "#";
 							link.realhref = href;
 							link.tag = code;
+							var sp = null;
+							if(sp = code.match(/(.*?)\.([0-9].*)/)){
+								if(playerSplitImages.indexOf(sp[2]) == -1){
+									playerSplitImages[sp[2]] = [];
+								}
+								
+								link.splittag = sp[2];
+								link.splitid = sp[3];
+								playerSplitImages[sp[2]].push(link);
+							}
+							
+							
 							link.addEventListener('click', function(e) {
+								if(link.splittag){
+									var arr = playerSplitImages[link.splittag];
+									loadSplitSounds(arr);
+									/*for(var i = 0; i < arr.length;i++){
+										
+									}*/
+								}
 								e.preventDefault();
 								this.innerHTML = '[loading]';
 								xmlhttp(link.realhref, function(data, rlink) {   
@@ -647,6 +666,8 @@ var playerSeekbarCurrent = null;
 var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:{}};
 var playerSettingsHeader = null;
+
+var playerSplitImages = [];
 function fixFFbug() {
 	if (!chrome && !playerPlayer.paused) { 
 		// Workaround for Firefox bug #583444
@@ -1189,7 +1210,12 @@ function addMusic(resp,tag,url) {
 	mvl.innerHTML = "[here]";
 	var BlobBuilder = (window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder);
     var bb = new BlobBuilder();
-    bb.append(data);
+	if(data instanceof Array){
+		for(var i = 0; i < data.length;i++)
+			bb.append(data[i]);
+	}else{
+		bb.append(data);
+	}
     var blob = bb.getBlob('audio/ogg');
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;
@@ -1257,6 +1283,23 @@ function nextMusic(auto) {
 		}
 	}
 	if(items.length > 0) items[0].tagelem.click();
+}
+
+function loadSplitSounds(arr){
+	var data = {links:arr,sounddata:[]};
+	realLoadSplitSounds(data,arr[0].realhref,arr[0].splitttag);
+}
+function realLoadSplitSounds(data,url,tag){
+	if(data.links.length < 1){
+		addMusic({data:data.sounddata,tag:tag},tag,url);
+	}else{
+		xmlhttp(data[0].realhref,function(resp){
+			var sound = findOggWithFooter(resp,tag)
+			data.sounddata.push(sound);
+			data.links = data.links.splice(1);
+			realLoadSplitSounds(data,url,tag);
+		});
+	}
 }
 function updateUserCSS(input) {
 	if(input){

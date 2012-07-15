@@ -99,7 +99,26 @@ function hyperlinkone(target) {
 							link.href = "#";
 							link.realhref = href;
 							link.tag = code;
+							var sp = null;
+							if(sp = code.match(/(.*?)\.([0-9].*)/)){
+								if(playerSplitImages.indexOf(sp[2]) == -1){
+									playerSplitImages[sp[2]] = [];
+								}
+								
+								link.splittag = sp[2];
+								link.splitid = sp[3];
+								playerSplitImages[sp[2]].push(link);
+							}
+							
+							
 							link.addEventListener('click', function(e) {
+								if(link.splittag){
+									var arr = playerSplitImages[link.splittag];
+									loadSplitSounds(arr);
+									/*for(var i = 0; i < arr.length;i++){
+										
+									}*/
+								}
 								e.preventDefault();
 								this.innerHTML = '[loading]';
 								xmlhttp(link.realhref, function(data, rlink) {   
