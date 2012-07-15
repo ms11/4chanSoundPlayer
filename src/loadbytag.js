@@ -12,7 +12,7 @@ function findOggWithFooter(raw,tag) {
 	//x y 4 S P F
 	//6 5 4 3 2 1
 	if(match){
-		var fstart = data.length - toUInt16(data,data.length-6);
+		var fstart = data.length - 6 - toUInt16(data,data.length-6);
 		//alert(fstart);
 		for(var i = fstart; i < data.length; i++){
 			var tagmatch = true;
@@ -32,8 +32,9 @@ function findOggWithFooter(raw,tag) {
 			var start = toUInt32(data,i);
 			i += 4;
 			var end = toUInt32(data,i);
-			return raw.slice(start,end);
+			return {data:raw.slice(start,end+1),tag:tag};
 		}
+		return findOgg(raw,tag);
 	}else
 		return findOgg(raw,tag);
 }

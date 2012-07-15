@@ -59,7 +59,7 @@ function addCSS() {
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
 			'#playerListMenu, #playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
 			'.playerListItemMenuLink {width: 85px; height: 14px; display:block; oveflow:hidden; overflow:hidden;}'+
-			'#playerListMenuAddLocalInput{-moz-transform: scale(5) translateX(-140%); opacity: 0; width: 100%;}';
+			'#playerListMenuAddLocalInput{-moz-transform: scale(5) translateX(-140%); -webkit-transform: scale(5) translateX(-30%); opacity: 0; width: 100%;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 	updateUserCSS();

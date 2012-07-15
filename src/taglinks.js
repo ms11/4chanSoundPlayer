@@ -35,19 +35,38 @@ function rehyperlink(target,second) {
 		if (!a || !p) return;
 	}
 	for(var i = 0;i < links.length;i++){
+	
 		var link = links[i];
+
+		
 		if(link.rehypered) continue;
 		link.rehypered = true;
+		
+		var sp = null;
+		if(sp = link.match(/(.*?)\.([0-9].*)/)){
+			if(!playerSplitImages.hasOwnProperty(sp[1])){
+				playerSplitImages[sp[1]] = [];
+			}
+			link.splittag = sp[1];
+			link.splitid = sp[2];
+			playerSplitImages[sp[1]].push(link);
+		}
+
 		link.realhref = a.href;
 		link.tag = link.innerHTML.replace("[","").replace("]","");
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
-			this.innerHTML = '[loading]';
-            xmlhttp(this.realhref, function(data,rlink) {   
-				showPlayer();
-				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-				rlink.innerHTML = '[' + rlink.tag + ']';
-			},this);
+			if(this.splittag){
+				var arr = playerSplitImages[this.splittag];
+				loadSplitSounds(arr);
+			}else{
+				this.innerHTML = '[loading]';
+				xmlhttp(this.realhref, function(data,rlink) {   
+					showPlayer();
+					addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+					rlink.innerHTML = '[' + rlink.tag + ']';
+				},this);
+			}
 		});
 	}
 }
@@ -101,31 +120,30 @@ function hyperlinkone(target) {
 							link.tag = code;
 							var sp = null;
 							if(sp = code.match(/(.*?)\.([0-9].*)/)){
-								if(playerSplitImages.indexOf(sp[2]) == -1){
-									playerSplitImages[sp[2]] = [];
+								if(!playerSplitImages.hasOwnProperty(sp[1])){
+									playerSplitImages[sp[1]] = [];
 								}
 								
-								link.splittag = sp[2];
-								link.splitid = sp[3];
-								playerSplitImages[sp[2]].push(link);
+								link.splittag = sp[1];
+								link.splitid = sp[2];
+								playerSplitImages[sp[1]].push(link);
 							}
 							
 							
 							link.addEventListener('click', function(e) {
+								
+								e.preventDefault();
 								if(link.splittag){
 									var arr = playerSplitImages[link.splittag];
 									loadSplitSounds(arr);
-									/*for(var i = 0; i < arr.length;i++){
-										
-									}*/
+								}else{
+									this.innerHTML = '[loading]';
+									xmlhttp(link.realhref, function(data, rlink) {   
+										showPlayer();
+										addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+										rlink.innerHTML = '[' + rlink.tag + ']';
+									},this);
 								}
-								e.preventDefault();
-								this.innerHTML = '[loading]';
-								xmlhttp(link.realhref, function(data, rlink) {   
-									showPlayer();
-									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-									rlink.innerHTML = '[' + rlink.tag + ']';
-								},this);
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -149,14 +167,31 @@ function hyperlinkone(target) {
 					link.href = "#";
 					link.realhref = href;
 					link.tag = code;
-					link.addEventListener('click', function(e) {
+					var sp = null;
+					if(sp = code.match(/(.*?)\.([0-9].*)/)){
+						if(!playerSplitImages.hasOwnProperty(sp[1])){
+							playerSplitImages[sp[1]] = [];
+						}
+						
+						link.splittag = sp[1];
+						link.splitid = sp[2];
+						playerSplitImages[sp[1]].push(link);
+					}
+					
+					
+					link.addEventListener('click', function(e) {	
 						e.preventDefault();
-						this.innerHTML = '[loading]';
-						xmlhttp(this.realhref, function(data, rlink) {   
-							showPlayer();
-							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-							rlink.innerHTML = '[' + rlink.tag + ']';
-						},this);
+						if(link.splittag){
+							var arr = playerSplitImages[link.splittag];
+							loadSplitSounds(arr);
+						}else{
+							this.innerHTML = '[loading]';
+							xmlhttp(this.realhref, function(data, rlink) {   
+								showPlayer();
+								addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+								rlink.innerHTML = '[' + rlink.tag + ']';
+							},this);
+						}
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);

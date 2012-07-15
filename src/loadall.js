@@ -1,14 +1,16 @@
 function loadAll(file,cb) {
-	if(!file.type){
+	if(!(file instanceof FileList)){
 		xmlhttp(file,function(data,link) {
 			loadAllWithFooter(data,link,cb);
 		}, file);
 	}else{
+		for(var i = 0; i < file.length;i++){
 		var reader = new FileReader();
 		reader.onload = function() {
-		loadAllWithFooter(reader.result,cb);
+		loadAllWithFooter(this.result,cb);
 		};
-		reader.readAsArrayBuffer(file);
+		reader.readAsArrayBuffer(file[i]);
+		}
 	}
 }
 
@@ -36,7 +38,7 @@ function loadAllWithFooter(raw,link,cb) {
 				i+=4;
 				var end = toUInt32(data,i);
 				i+=4;
-				tags.push({tag:tag,start:start,end:end});
+				tags.push({tag:tag,start:start,end:end+1});
 			}
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){

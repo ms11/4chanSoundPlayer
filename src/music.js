@@ -64,12 +64,12 @@ function addMusic(resp,tag,url) {
 	mvl.innerHTML = "[here]";
 	var BlobBuilder = (window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder);
     var bb = new BlobBuilder();
-	if(data instanceof Array){
-		for(var i = 0; i < data.length;i++)
-			bb.append(data[i]);
-	}else{
+	//if(data instanceof Array){
+	//	for(var i = 0; i < data.length;i++)
+	//		bb.append(data[i]);
+	//}else{
 		bb.append(data);
-	}
+	//}
     var blob = bb.getBlob('audio/ogg');
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;
@@ -137,21 +137,4 @@ function nextMusic(auto) {
 		}
 	}
 	if(items.length > 0) items[0].tagelem.click();
-}
-
-function loadSplitSounds(arr){
-	var data = {links:arr,sounddata:[]};
-	realLoadSplitSounds(data,arr[0].realhref,arr[0].splitttag);
-}
-function realLoadSplitSounds(data,url,tag){
-	if(data.links.length < 1){
-		addMusic({data:data.sounddata,tag:tag},tag,url);
-	}else{
-		xmlhttp(data[0].realhref,function(resp){
-			var sound = findOggWithFooter(resp,tag)
-			data.sounddata.push(sound);
-			data.links = data.links.splice(1);
-			realLoadSplitSounds(data,url,tag);
-		});
-	}
 }

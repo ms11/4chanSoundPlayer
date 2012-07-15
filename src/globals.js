@@ -25,4 +25,4 @@ var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:{}};
 var playerSettingsHeader = null;
 
-var playerSplitImages = [];
+var playerSplitImages = {};

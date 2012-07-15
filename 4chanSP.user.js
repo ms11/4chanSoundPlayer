@@ -109,16 +109,18 @@ function get_grease(url, callback, userState) {
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
 function loadAll(file,cb) {
-	if(!file.type){
+	if(!(file instanceof FileList)){
 		xmlhttp(file,function(data,link) {
 			loadAllWithFooter(data,link,cb);
 		}, file);
 	}else{
+		for(var i = 0; i < file.length;i++){
 		var reader = new FileReader();
 		reader.onload = function() {
-		loadAllWithFooter(reader.result,cb);
+		loadAllWithFooter(this.result,cb);
 		};
-		reader.readAsArrayBuffer(file);
+		reader.readAsArrayBuffer(file[i]);
+		}
 	}
 }
 
@@ -146,7 +148,7 @@ function loadAllWithFooter(raw,link,cb) {
 				i+=4;
 				var end = toUInt32(data,i);
 				i+=4;
-				tags.push({tag:tag,start:start,end:end});
+				tags.push({tag:tag,start:start,end:end+1});
 			}
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){
@@ -245,7 +247,7 @@ function findOggWithFooter(raw,tag) {
 	//x y 4 S P F
 	//6 5 4 3 2 1
 	if(match){
-		var fstart = data.length - toUInt16(data,data.length-6);
+		var fstart = data.length - 6 - toUInt16(data,data.length-6);
 		//alert(fstart);
 		for(var i = fstart; i < data.length; i++){
 			var tagmatch = true;
@@ -265,8 +267,9 @@ function findOggWithFooter(raw,tag) {
 			var start = toUInt32(data,i);
 			i += 4;
 			var end = toUInt32(data,i);
-			return raw.slice(start,end);
+			return {data:raw.slice(start,end+1),tag:tag};
 		}
+		return findOgg(raw,tag);
 	}else
 		return findOgg(raw,tag);
 }
@@ -423,6 +426,35 @@ function findOgg(raw, tag)
 		return {"data":raw.slice(ptr,end),"tag":tag};
 	}
 }
+function loadSplitSounds(arr){
+	var data = {links:arr.slice(),sounddata:[]};
+	realLoadSplitSounds(data,arr[0].realhref,arr[0].splittag);
+}
+function realLoadSplitSounds(data,url,tag){
+	if(data.links.length < 1){
+		var len = 0;
+		for(var i = 0; i < data.sounddata.length;i++){
+			len += data.sounddata[i].byteLength;
+		}
+		var raw = new ArrayBuffer(len);
+		var rawa = new Uint8Array(raw);
+		var offs = 0;
+		for(var i = 0; i < data.sounddata.length;i++){
+			var sa = new Uint8Array(data.sounddata[i]);
+			rawa.set(sa,offs);
+			offs+=sa.length;
+		}
+		showPlayer();
+		addMusic({data:raw,tag:tag},tag,url);
+	}else{
+		xmlhttp(data.links[0].realhref,function(resp){
+			var sound = findOggWithFooter(resp,data.links[0].tag)
+			data.sounddata.push(sound.data);
+			data.links = data.links.splice(1);
+			realLoadSplitSounds(data,url,tag);
+		});
+	}
+}
 function rehyperlink(target,second) {
 	var list = target.getElementsByClassName('playerLoadAllLink');
 	for(var i = 0; i < list.length;i++){
@@ -460,19 +492,38 @@ function rehyperlink(target,second) {
 		if (!a || !p) return;
 	}
 	for(var i = 0;i < links.length;i++){
+	
 		var link = links[i];
+
+		
 		if(link.rehypered) continue;
 		link.rehypered = true;
+		
+		var sp = null;
+		if(sp = link.match(/(.*?)\.([0-9].*)/)){
+			if(!playerSplitImages.hasOwnProperty(sp[1])){
+				playerSplitImages[sp[1]] = [];
+			}
+			link.splittag = sp[1];
+			link.splitid = sp[2];
+			playerSplitImages[sp[1]].push(link);
+		}
+
 		link.realhref = a.href;
 		link.tag = link.innerHTML.replace("[","").replace("]","");
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
-			this.innerHTML = '[loading]';
-            xmlhttp(this.realhref, function(data,rlink) {   
-				showPlayer();
-				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-				rlink.innerHTML = '[' + rlink.tag + ']';
-			},this);
+			if(this.splittag){
+				var arr = playerSplitImages[this.splittag];
+				loadSplitSounds(arr);
+			}else{
+				this.innerHTML = '[loading]';
+				xmlhttp(this.realhref, function(data,rlink) {   
+					showPlayer();
+					addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+					rlink.innerHTML = '[' + rlink.tag + ']';
+				},this);
+			}
 		});
 	}
 }
@@ -526,31 +577,30 @@ function hyperlinkone(target) {
 							link.tag = code;
 							var sp = null;
 							if(sp = code.match(/(.*?)\.([0-9].*)/)){
-								if(playerSplitImages.indexOf(sp[2]) == -1){
-									playerSplitImages[sp[2]] = [];
+								if(!playerSplitImages.hasOwnProperty(sp[1])){
+									playerSplitImages[sp[1]] = [];
 								}
 								
-								link.splittag = sp[2];
-								link.splitid = sp[3];
-								playerSplitImages[sp[2]].push(link);
+								link.splittag = sp[1];
+								link.splitid = sp[2];
+								playerSplitImages[sp[1]].push(link);
 							}
 							
 							
 							link.addEventListener('click', function(e) {
+								
+								e.preventDefault();
 								if(link.splittag){
 									var arr = playerSplitImages[link.splittag];
 									loadSplitSounds(arr);
-									/*for(var i = 0; i < arr.length;i++){
-										
-									}*/
+								}else{
+									this.innerHTML = '[loading]';
+									xmlhttp(link.realhref, function(data, rlink) {   
+										showPlayer();
+										addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+										rlink.innerHTML = '[' + rlink.tag + ']';
+									},this);
 								}
-								e.preventDefault();
-								this.innerHTML = '[loading]';
-								xmlhttp(link.realhref, function(data, rlink) {   
-									showPlayer();
-									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-									rlink.innerHTML = '[' + rlink.tag + ']';
-								},this);
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -574,14 +624,31 @@ function hyperlinkone(target) {
 					link.href = "#";
 					link.realhref = href;
 					link.tag = code;
-					link.addEventListener('click', function(e) {
+					var sp = null;
+					if(sp = code.match(/(.*?)\.([0-9].*)/)){
+						if(!playerSplitImages.hasOwnProperty(sp[1])){
+							playerSplitImages[sp[1]] = [];
+						}
+						
+						link.splittag = sp[1];
+						link.splitid = sp[2];
+						playerSplitImages[sp[1]].push(link);
+					}
+					
+					
+					link.addEventListener('click', function(e) {	
 						e.preventDefault();
-						this.innerHTML = '[loading]';
-						xmlhttp(this.realhref, function(data, rlink) {   
-							showPlayer();
-							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-							rlink.innerHTML = '[' + rlink.tag + ']';
-						},this);
+						if(link.splittag){
+							var arr = playerSplitImages[link.splittag];
+							loadSplitSounds(arr);
+						}else{
+							this.innerHTML = '[loading]';
+							xmlhttp(this.realhref, function(data, rlink) {   
+								showPlayer();
+								addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+								rlink.innerHTML = '[' + rlink.tag + ']';
+							},this);
+						}
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);
@@ -667,7 +734,7 @@ var playerUserStyle = null;
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:{}};
 var playerSettingsHeader = null;
 
-var playerSplitImages = [];
+var playerSplitImages = {};
 function fixFFbug() {
 	if (!chrome && !playerPlayer.paused) { 
 		// Workaround for Firefox bug #583444
@@ -1064,11 +1131,11 @@ function showPlayer() {
 			}
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
-		playerListMenuAddLocal = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
-		playerListMenuAddLocal.innerHTML = "Add local file...";
-		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput"});
+		playerListMenuAddLocal = create('a', playerListMenu, {"class":"playerListItemMenuLink"});
+		playerListMenuAddLocal.innerHTML = "Add local files...";
+		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput","multiple":"true"});
 		playerListMenuAddLocalInput.addEventListener('change', function(e) {
-			loadAll(e.target.files[0]);
+			loadAll(e.target.files);
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
 		playerList.addEventListener('contextmenu', function(e) {
@@ -1210,12 +1277,12 @@ function addMusic(resp,tag,url) {
 	mvl.innerHTML = "[here]";
 	var BlobBuilder = (window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder);
     var bb = new BlobBuilder();
-	if(data instanceof Array){
-		for(var i = 0; i < data.length;i++)
-			bb.append(data[i]);
-	}else{
+	//if(data instanceof Array){
+	//	for(var i = 0; i < data.length;i++)
+	//		bb.append(data[i]);
+	//}else{
 		bb.append(data);
-	}
+	//}
     var blob = bb.getBlob('audio/ogg');
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;
@@ -1284,23 +1351,6 @@ function nextMusic(auto) {
 	}
 	if(items.length > 0) items[0].tagelem.click();
 }
-
-function loadSplitSounds(arr){
-	var data = {links:arr,sounddata:[]};
-	realLoadSplitSounds(data,arr[0].realhref,arr[0].splitttag);
-}
-function realLoadSplitSounds(data,url,tag){
-	if(data.links.length < 1){
-		addMusic({data:data.sounddata,tag:tag},tag,url);
-	}else{
-		xmlhttp(data[0].realhref,function(resp){
-			var sound = findOggWithFooter(resp,tag)
-			data.sounddata.push(sound);
-			data.links = data.links.splice(1);
-			realLoadSplitSounds(data,url,tag);
-		});
-	}
-}
 function updateUserCSS(input) {
 	if(input){
 		if(!playerSaveData.userCSS) {
@@ -1362,7 +1412,7 @@ function addCSS() {
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
 			'#playerListMenu, #playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
 			'.playerListItemMenuLink {width: 85px; height: 14px; display:block; oveflow:hidden; overflow:hidden;}'+
-			'#playerListMenuAddLocalInput{-moz-transform: scale(5) translateX(-140%); opacity: 0; width: 100%;}';
+			'#playerListMenuAddLocalInput{-moz-transform: scale(5) translateX(-140%); -webkit-transform: scale(5) translateX(-30%); opacity: 0; width: 100%;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 	updateUserCSS();

@@ -394,11 +394,11 @@ function showPlayer() {
 			}
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
-		playerListMenuAddLocal = create('a', playerListMenu, {"href":"#","class":"playerListItemMenuLink"});
-		playerListMenuAddLocal.innerHTML = "Add local file...";
-		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput"});
+		playerListMenuAddLocal = create('a', playerListMenu, {"class":"playerListItemMenuLink"});
+		playerListMenuAddLocal.innerHTML = "Add local files...";
+		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput","multiple":"true"});
 		playerListMenuAddLocalInput.addEventListener('change', function(e) {
-			loadAll(e.target.files[0]);
+			loadAll(e.target.files);
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
 		playerList.addEventListener('contextmenu', function(e) {
