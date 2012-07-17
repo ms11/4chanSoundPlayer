@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.69
+// @version        0.70
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -500,7 +500,7 @@ function rehyperlink(target,second) {
 		link.rehypered = true;
 		
 		var sp = null;
-		if(sp = link.match(/(.*?)\.([0-9].*)/)){
+		if(sp = link.innerHTML.match(/(.*?)\.([0-9].*)/)){
 			if(!playerSplitImages.hasOwnProperty(sp[1])){
 				playerSplitImages[sp[1]] = [];
 			}

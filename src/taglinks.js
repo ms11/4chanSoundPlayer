@@ -43,7 +43,7 @@ function rehyperlink(target,second) {
 		link.rehypered = true;
 		
 		var sp = null;
-		if(sp = link.match(/(.*?)\.([0-9].*)/)){
+		if(sp = link.innerHTML.match(/(.*?)\.([0-9].*)/)){
 			if(!playerSplitImages.hasOwnProperty(sp[1])){
 				playerSplitImages[sp[1]] = [];
 			}
