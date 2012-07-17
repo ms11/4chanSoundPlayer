@@ -64,12 +64,7 @@ function addMusic(resp,tag,url) {
 	mvl.innerHTML = "[here]";
 	var BlobBuilder = (window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder);
     var bb = new BlobBuilder();
-	//if(data instanceof Array){
-	//	for(var i = 0; i < data.length;i++)
-	//		bb.append(data[i]);
-	//}else{
-		bb.append(data);
-	//}
+	bb.append(data);
     var blob = bb.getBlob('audio/ogg');
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;

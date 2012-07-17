@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.70
+// @version        0.71
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -109,7 +109,7 @@ function get_grease(url, callback, userState) {
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
 function loadAll(file,cb) {
-	if(!(file instanceof FileList)){
+	if(!(file.toString().indexOf(FileList))){ //WHY FIREFOX DON'T LIKE instanceof?
 		xmlhttp(file,function(data,link) {
 			loadAllWithFooter(data,link,cb);
 		}, file);
@@ -1277,12 +1277,7 @@ function addMusic(resp,tag,url) {
 	mvl.innerHTML = "[here]";
 	var BlobBuilder = (window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder);
     var bb = new BlobBuilder();
-	//if(data instanceof Array){
-	//	for(var i = 0; i < data.length;i++)
-	//		bb.append(data[i]);
-	//}else{
-		bb.append(data);
-	//}
+	bb.append(data);
     var blob = bb.getBlob('audio/ogg');
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;

@@ -1,5 +1,5 @@
 function loadAll(file,cb) {
-	if(!(file instanceof FileList)){
+	if(!(file.toString().indexOf(FileList))){ //WHY FIREFOX DON'T LIKE instanceof?
 		xmlhttp(file,function(data,link) {
 			loadAllWithFooter(data,link,cb);
 		}, file);
