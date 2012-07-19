@@ -204,9 +204,29 @@ function showPlayer() {
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
 		
-		
+		//
 		playerList = create('div', playerDiv, {"id":"playerList"});
 		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
+		playerList.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerList.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
+		playerControls2.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerControls2.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
 		playerPlayer.addEventListener('ended', function() {playerPlayPause.innerHTML = ">"; nextMusic(true);});

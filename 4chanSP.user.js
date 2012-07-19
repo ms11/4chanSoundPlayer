@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.70
+// @version        0.71
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -852,8 +852,18 @@ function showPlayer() {
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
 		
-		
+		//
 		playerList = create('div', playerDiv, {"id":"playerList"});
+		playerList.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerList.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});    
 		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
