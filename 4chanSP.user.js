@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.71
+// @version        0.72
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -418,9 +418,9 @@ function findOgg(raw, tag)
 			}
 		}
 		if(end>0)
-		return {"data":raw.slice(ptr,end),"tag":tag};
+			return {"data":raw.slice(ptr,end),"tag":tag};
 		else
-		return {"data":raw.slice(ptr,end),"tag":tag};
+			return {"data":raw.slice(ptr),"tag":tag};
 	}
 }
 function rehyperlink(target,second) {
@@ -854,6 +854,7 @@ function showPlayer() {
 		
 		//
 		playerList = create('div', playerDiv, {"id":"playerList"});
+		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
 		playerList.addEventListener('dragover', function(e){
 			e.preventDefault();
 			e.dataTransfer.dropEffect = "move";
@@ -863,8 +864,17 @@ function showPlayer() {
 			e.stopPropagation();
 			e.preventDefault();
 			loadAll(e.dataTransfer.getData("text/plain"));
-		});    
-		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
+		});
+		playerControls2.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerControls2.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
 		playerPlayer.addEventListener('ended', function() {playerPlayPause.innerHTML = ">"; nextMusic(true);});
