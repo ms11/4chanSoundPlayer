@@ -1,8 +1,8 @@
-function loadAll(file,cb) {
+function loadAll(file,load,onprogress) {
 	if(!file.type){
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link,cb);
-		}, file);
+			loadAllWithFooter(data,link,load);
+		},onprogress, file);
 	}else{
 		var reader = new FileReader();
 		reader.onload = function() {

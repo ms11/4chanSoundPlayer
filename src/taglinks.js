@@ -8,12 +8,18 @@ function rehyperlink(target,second) {
 			e.target.innerHTML = " loading...";
 			var a = null;
 			if(!archive){
-			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+				var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
 			}else{
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+					function(pe){
+						e.target.innerHTML = ' loading';
+						if(pe.lengthComputable){
+							e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+						}
+				});
 		});
 	}
 	var links = target.getElementsByClassName('soundlink');
@@ -47,6 +53,12 @@ function rehyperlink(target,second) {
 				showPlayer();
 				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 				rlink.innerHTML = '[' + rlink.tag + ']';
+			},function(e,rlink){
+				rlink.innerHTML = '[loading';
+				if(e.lengthComputable){
+					rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+				}
+				rlink.innerHTML += ']';
 			},this);
 		});
 	}
@@ -106,6 +118,12 @@ function hyperlinkone(target) {
 									showPlayer();
 									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 									rlink.innerHTML = '[' + rlink.tag + ']';
+								},function(e,rlink){
+									rlink.innerHTML = '[loading';
+									if(e.lengthComputable){
+										rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+									}
+									rlink.innerHTML += ']';
 								},this);
 							});
 							subnode.nodeValue = match[1];
@@ -137,6 +155,12 @@ function hyperlinkone(target) {
 							showPlayer();
 							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 							rlink.innerHTML = '[' + rlink.tag + ']';
+						},function(e,rlink){
+							rlink.innerHTML = '[loading';
+							if(e.lengthComputable){
+								rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+							}
+							rlink.innerHTML += ']';
 						},this);
 					});
 					node.nodeValue = match[1];
@@ -183,7 +207,7 @@ function addLoadAllLink(post) {
 		}
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
-			e.target.innerHTML = " loading...";
+			e.target.innerHTML = " loading";
 			var a = null;
 			if(!archive){
 			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
@@ -191,7 +215,14 @@ function addLoadAllLink(post) {
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+				function(pe){
+					e.target.innerHTML = ' loading';
+					if(pe.lengthComputable){
+						e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+					}
+				}
+				);
 		});
 		post.hasAllLink = true;
 	}

@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.72
+// @version        0.73
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -75,23 +75,24 @@ function toUInt32(data,offset){
 function toUInt16(data,offset){
 	return data[offset] | data[offset + 1] << 8;
 }
-function get_chrome(url, callback, userState)
+function get_chrome(url, callback, progressCb, userState)
 {
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', url, true);
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.responseType = 'arraybuffer';
+	if(progressCb)
+		xhr.onprogress = function(e){progressCb(e,userState);};
 	xhr.onload = function(e) {
 		if (this.status == 200)	{
 			callback(this.response,userState);
-			//callback(findOggWithFooter(this.response, link.tag), link);
 		}
 	};
 	xhr.send();
 }
-//modified to be able to pass thumbnail link
-function get_grease(url, callback, userState) {
-	GM_xmlhttpRequest({
+
+function get_grease(url, callback, progressCb, userState) {
+	var arg = {
 		method: "GET",
 		url: url,
 		overrideMimeType: 'text/plain; charset=x-user-defined',
@@ -102,17 +103,19 @@ function get_grease(url, callback, userState) {
 				var text = e.responseText;
 				var foo = s2ab(text);
 				callback(foo,userState);
-				//callback(findOggWithFooter(foo, link.tag), link);
 			}
 		}
-	});
+	};
+	if(progressCb)
+		arg.onprogress = function(e){progressCb(e,userState);};
+	GM_xmlhttpRequest(arg);
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
-function loadAll(file,cb) {
+function loadAll(file,load,onprogress) {
 	if(!file.type){
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link,cb);
-		}, file);
+			loadAllWithFooter(data,link,load);
+		},onprogress, file);
 	}else{
 		var reader = new FileReader();
 		reader.onload = function() {
@@ -433,12 +436,18 @@ function rehyperlink(target,second) {
 			e.target.innerHTML = " loading...";
 			var a = null;
 			if(!archive){
-			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+				var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
 			}else{
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+					function(pe){
+						e.target.innerHTML = ' loading';
+						if(pe.lengthComputable){
+							e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+						}
+				});
 		});
 	}
 	var links = target.getElementsByClassName('soundlink');
@@ -472,6 +481,12 @@ function rehyperlink(target,second) {
 				showPlayer();
 				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 				rlink.innerHTML = '[' + rlink.tag + ']';
+			},function(e,rlink){
+				rlink.innerHTML = '[loading';
+				if(e.lengthComputable){
+					rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+				}
+				rlink.innerHTML += ']';
 			},this);
 		});
 	}
@@ -531,6 +546,12 @@ function hyperlinkone(target) {
 									showPlayer();
 									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 									rlink.innerHTML = '[' + rlink.tag + ']';
+								},function(e,rlink){
+									rlink.innerHTML = '[loading';
+									if(e.lengthComputable){
+										rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+									}
+									rlink.innerHTML += ']';
 								},this);
 							});
 							subnode.nodeValue = match[1];
@@ -562,6 +583,12 @@ function hyperlinkone(target) {
 							showPlayer();
 							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
 							rlink.innerHTML = '[' + rlink.tag + ']';
+						},function(e,rlink){
+							rlink.innerHTML = '[loading';
+							if(e.lengthComputable){
+								rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+							}
+							rlink.innerHTML += ']';
 						},this);
 					});
 					node.nodeValue = match[1];
@@ -608,7 +635,7 @@ function addLoadAllLink(post) {
 		}
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
-			e.target.innerHTML = " loading...";
+			e.target.innerHTML = " loading";
 			var a = null;
 			if(!archive){
 			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
@@ -616,7 +643,14 @@ function addLoadAllLink(post) {
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+				function(pe){
+					e.target.innerHTML = ' loading';
+					if(pe.lengthComputable){
+						e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+					}
+				}
+				);
 		});
 		post.hasAllLink = true;
 	}
