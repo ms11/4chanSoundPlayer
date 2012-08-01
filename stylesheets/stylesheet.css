@@ -246,14 +246,6 @@ a {
   zoom:1;
 }
 
-.addinfo:before{
-	content: "[";
-}
-
-.addinfo:after{
-	content: "]";
-}
-
 .addinfo {
 	font-size: 50%;
     vertical-align: top;
