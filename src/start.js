@@ -5,16 +5,17 @@ if(!archive){
 			for(var i = 0; i < records.length; i++) {
 				var e = records[i];
 				if(e.type == "childList"){
-				if(e.addedNodes){
-					for(var j = 0; j < e.addedNodes.length;j++) {
-						var target = e.addedNodes[j];
-						if(target.classList){
-							if(target.classList.contains('inline')) {
-								rehyperlink(target);
-							}else if(target.classList.contains('postContainer')) {
-								hyperlinkone(target);
-							}else if(target.classList.contains('backlinkHr')) {
-								rehyperlink(target.parentNode.parentNode);
+					if(e.addedNodes){
+						for(var j = 0; j < e.addedNodes.length;j++) {
+							var target = e.addedNodes[j];
+							if(target.classList){
+								if(target.classList.contains('inline')) {
+									rehyperlink(target);
+								}else if(target.classList.contains('postContainer')) {
+									hyperlinkone(target);
+								}else if(target.classList.contains('backlinkHr')) {
+									rehyperlink(target.parentNode.parentNode);
+								}
 							}
 						}
 					}
