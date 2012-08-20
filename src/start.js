@@ -1,5 +1,6 @@
 hyperlink();
 if(!archive){
+	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 	if(MutationObserver) {
 		var obs = new MutationObserver(function(records) {
 			for(var i = 0; i < records.length; i++) {
@@ -22,7 +23,7 @@ if(!archive){
 				}
 			}
 		});
-	obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
+		obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
 	}else{
 		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
 		{
@@ -46,5 +47,5 @@ if(!archive){
 		e.preventDefault();
 		showPlayer();
 	});
-	
+
 }
