@@ -97,11 +97,16 @@ function prevMusic() {
 	{
 		if(items[i].getAttribute("playing") == "true")
 		{
-			if(i === 0)
-				items[items.length-1].tagelem.click();
-			else
-				items[i-1].tagelem.click();
-			return;
+			if(playerPlayer.currentTime < 3) {
+				if(i === 0)
+					items[items.length-1].tagelem.click();
+				else
+					items[i-1].tagelem.click();
+				return;
+			}else{
+				items[i].tagelem.click();
+				return;
+			}
 		}
 	}
 	if(items.length > 0) items[0].tagelem.click();
