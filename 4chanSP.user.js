@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.73
+// @version        0.74
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -477,10 +477,10 @@ function rehyperlink(target,second) {
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
 			this.innerHTML = '[loading]';
-            xmlhttp(this.realhref, function(data,rlink) {   
+            xmlhttp(this.realhref, function(data,rlink) {
+				rlink.innerHTML = '[' + rlink.tag + ']';
 				showPlayer();
 				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-				rlink.innerHTML = '[' + rlink.tag + ']';
 			},function(e,rlink){
 				rlink.innerHTML = '[loading';
 				if(e.lengthComputable){
@@ -542,10 +542,10 @@ function hyperlinkone(target) {
 							link.addEventListener('click', function(e) {
 								e.preventDefault();
 								this.innerHTML = '[loading]';
-								xmlhttp(link.realhref, function(data, rlink) {   
+								xmlhttp(link.realhref, function(data, rlink) {  
+									rlink.innerHTML = '[' + rlink.tag + ']';
 									showPlayer();
 									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-									rlink.innerHTML = '[' + rlink.tag + ']';
 								},function(e,rlink){
 									rlink.innerHTML = '[loading';
 									if(e.lengthComputable){
@@ -579,10 +579,10 @@ function hyperlinkone(target) {
 					link.addEventListener('click', function(e) {
 						e.preventDefault();
 						this.innerHTML = '[loading]';
-						xmlhttp(this.realhref, function(data, rlink) {   
+						xmlhttp(this.realhref, function(data, rlink) {
+							rlink.innerHTML = '[' + rlink.tag + ']';
 							showPlayer();
 							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-							rlink.innerHTML = '[' + rlink.tag + ']';
 						},function(e,rlink){
 							rlink.innerHTML = '[loading';
 							if(e.lengthComputable){
@@ -1279,11 +1279,16 @@ function prevMusic() {
 	{
 		if(items[i].getAttribute("playing") == "true")
 		{
-			if(i === 0)
-				items[items.length-1].tagelem.click();
-			else
-				items[i-1].tagelem.click();
-			return;
+			if(playerPlayer.currentTime < 3) {
+				if(i === 0)
+					items[items.length-1].tagelem.click();
+				else
+					items[i-1].tagelem.click();
+				return;
+			}else{
+				items[i].tagelem.click();
+				return;
+			}
 		}
 	}
 	if(items.length > 0) items[0].tagelem.click();
@@ -1383,15 +1388,27 @@ function addCSS() {
 }
 hyperlink();
 if(!archive){
-	document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
-	{
-		if(!e.target.classList) return;
-		if(e.target.classList.contains('inline')){
-			rehyperlink(e.target);
-		}else if(e.target.classList.contains('postContainer')){
-			hyperlinkone(e.target);
+	var obs = new MutationObserver(function(records) {
+		for(var i = 0; i < records.length; i++) {
+			var e = records[i];
+			if(e.type == "childList"){
+			if(e.addedNodes){
+				for(var j = 0; j < e.addedNodes.length;j++) {
+					var target = e.addedNodes[j];
+					if(target.classList){
+						if(target.classList.contains('inline')) {
+							rehyperlink(target);
+						}else if(target.classList.contains('postContainer')) {
+							hyperlinkone(target);
+						}else if(target.classList.contains('backlinkHr')) {
+							rehyperlink(target.parentNode.parentNode);
+						}
+					}
+				}
+			}
 		}
 	});
+	obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
 	var relNode = document.getElementById('settingsWindowLink').nextSibling;
 	var playerShowLink = create('a',null,{'class':"settingsWindowLinkBot"});
 	var bracket = document.createTextNode('] [');
