@@ -49,10 +49,10 @@ function rehyperlink(target,second) {
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
 			this.innerHTML = '[loading]';
-            xmlhttp(this.realhref, function(data,rlink) {   
+            xmlhttp(this.realhref, function(data,rlink) {
+				rlink.innerHTML = '[' + rlink.tag + ']';
 				showPlayer();
 				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-				rlink.innerHTML = '[' + rlink.tag + ']';
 			},function(e,rlink){
 				rlink.innerHTML = '[loading';
 				if(e.lengthComputable){
@@ -114,10 +114,10 @@ function hyperlinkone(target) {
 							link.addEventListener('click', function(e) {
 								e.preventDefault();
 								this.innerHTML = '[loading]';
-								xmlhttp(link.realhref, function(data, rlink) {   
+								xmlhttp(link.realhref, function(data, rlink) {  
+									rlink.innerHTML = '[' + rlink.tag + ']';
 									showPlayer();
 									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-									rlink.innerHTML = '[' + rlink.tag + ']';
 								},function(e,rlink){
 									rlink.innerHTML = '[loading';
 									if(e.lengthComputable){
@@ -151,10 +151,10 @@ function hyperlinkone(target) {
 					link.addEventListener('click', function(e) {
 						e.preventDefault();
 						this.innerHTML = '[loading]';
-						xmlhttp(this.realhref, function(data, rlink) {   
+						xmlhttp(this.realhref, function(data, rlink) {
+							rlink.innerHTML = '[' + rlink.tag + ']';
 							showPlayer();
 							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-							rlink.innerHTML = '[' + rlink.tag + ']';
 						},function(e,rlink){
 							rlink.innerHTML = '[loading';
 							if(e.lengthComputable){
