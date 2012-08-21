@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.74
+// @version        0.75
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -1388,6 +1388,7 @@ function addCSS() {
 }
 hyperlink();
 if(!archive){
+	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 	if(MutationObserver) {
 		var obs = new MutationObserver(function(records) {
 			for(var i = 0; i < records.length; i++) {
@@ -1410,7 +1411,7 @@ if(!archive){
 				}
 			}
 		});
-	obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
+		obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
 	}else{
 		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
 		{
@@ -1434,5 +1435,5 @@ if(!archive){
 		e.preventDefault();
 		showPlayer();
 	});
-	
+
 }
