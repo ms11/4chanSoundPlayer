@@ -8,12 +8,18 @@ function rehyperlink(target,second) {
 			e.target.innerHTML = " loading...";
 			var a = null;
 			if(!archive){
-			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+				var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
 			}else{
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+					function(pe){
+						e.target.innerHTML = ' loading';
+						if(pe.lengthComputable){
+							e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+						}
+				});
 		});
 	}
 	var links = target.getElementsByClassName('soundlink');
@@ -56,6 +62,7 @@ function rehyperlink(target,second) {
 		link.tag = link.innerHTML.replace("[","").replace("]","");
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
+<<<<<<< HEAD
 			if(this.splittag){
 				var arr = playerSplitImages[this.splittag];
 				loadSplitSounds(arr);
@@ -67,6 +74,20 @@ function rehyperlink(target,second) {
 					rlink.innerHTML = '[' + rlink.tag + ']';
 				},this);
 			}
+=======
+			this.innerHTML = '[loading]';
+            xmlhttp(this.realhref, function(data,rlink) {
+				rlink.innerHTML = '[' + rlink.tag + ']';
+				showPlayer();
+				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+			},function(e,rlink){
+				rlink.innerHTML = '[loading';
+				if(e.lengthComputable){
+					rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+				}
+				rlink.innerHTML += ']';
+			},this);
+>>>>>>> master
 		});
 	}
 }
@@ -133,6 +154,7 @@ function hyperlinkone(target) {
 							link.addEventListener('click', function(e) {
 								
 								e.preventDefault();
+<<<<<<< HEAD
 								if(link.splittag){
 									var arr = playerSplitImages[link.splittag];
 									loadSplitSounds(arr);
@@ -144,6 +166,20 @@ function hyperlinkone(target) {
 										rlink.innerHTML = '[' + rlink.tag + ']';
 									},this);
 								}
+=======
+								this.innerHTML = '[loading]';
+								xmlhttp(link.realhref, function(data, rlink) {  
+									rlink.innerHTML = '[' + rlink.tag + ']';
+									showPlayer();
+									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+								},function(e,rlink){
+									rlink.innerHTML = '[loading';
+									if(e.lengthComputable){
+										rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+									}
+									rlink.innerHTML += ']';
+								},this);
+>>>>>>> master
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -181,6 +217,7 @@ function hyperlinkone(target) {
 					
 					link.addEventListener('click', function(e) {	
 						e.preventDefault();
+<<<<<<< HEAD
 						if(link.splittag){
 							var arr = playerSplitImages[link.splittag];
 							loadSplitSounds(arr);
@@ -192,6 +229,20 @@ function hyperlinkone(target) {
 								rlink.innerHTML = '[' + rlink.tag + ']';
 							},this);
 						}
+=======
+						this.innerHTML = '[loading]';
+						xmlhttp(this.realhref, function(data, rlink) {
+							rlink.innerHTML = '[' + rlink.tag + ']';
+							showPlayer();
+							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+						},function(e,rlink){
+							rlink.innerHTML = '[loading';
+							if(e.lengthComputable){
+								rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+							}
+							rlink.innerHTML += ']';
+						},this);
+>>>>>>> master
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);
@@ -237,7 +288,7 @@ function addLoadAllLink(post) {
 		}
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
-			e.target.innerHTML = " loading...";
+			e.target.innerHTML = " loading";
 			var a = null;
 			if(!archive){
 			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
@@ -245,7 +296,14 @@ function addLoadAllLink(post) {
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+				function(pe){
+					e.target.innerHTML = ' loading';
+					if(pe.lengthComputable){
+						e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+					}
+				}
+				);
 		});
 		post.hasAllLink = true;
 	}

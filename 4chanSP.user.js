@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.71
+// @version        0.72
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -75,23 +75,24 @@ function toUInt32(data,offset){
 function toUInt16(data,offset){
 	return data[offset] | data[offset + 1] << 8;
 }
-function get_chrome(url, callback, userState)
+function get_chrome(url, callback, progressCb, userState)
 {
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', url, true);
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.responseType = 'arraybuffer';
+	if(progressCb)
+		xhr.onprogress = function(e){progressCb(e,userState);};
 	xhr.onload = function(e) {
 		if (this.status == 200)	{
 			callback(this.response,userState);
-			//callback(findOggWithFooter(this.response, link.tag), link);
 		}
 	};
 	xhr.send();
 }
-//modified to be able to pass thumbnail link
-function get_grease(url, callback, userState) {
-	GM_xmlhttpRequest({
+
+function get_grease(url, callback, progressCb, userState) {
+	var arg = {
 		method: "GET",
 		url: url,
 		overrideMimeType: 'text/plain; charset=x-user-defined',
@@ -102,17 +103,19 @@ function get_grease(url, callback, userState) {
 				var text = e.responseText;
 				var foo = s2ab(text);
 				callback(foo,userState);
-				//callback(findOggWithFooter(foo, link.tag), link);
 			}
 		}
-	});
+	};
+	if(progressCb)
+		arg.onprogress = function(e){progressCb(e,userState);};
+	GM_xmlhttpRequest(arg);
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
 function loadAll(file,cb) {
 	if(!(file.toString().indexOf(FileList))){ //WHY FIREFOX DON'T LIKE instanceof?
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link,cb);
-		}, file);
+			loadAllWithFooter(data,link,load);
+		},onprogress, file);
 	}else{
 		for(var i = 0; i < file.length;i++){
 		var reader = new FileReader();
@@ -421,9 +424,9 @@ function findOgg(raw, tag)
 			}
 		}
 		if(end>0)
-		return {"data":raw.slice(ptr,end),"tag":tag};
+			return {"data":raw.slice(ptr,end),"tag":tag};
 		else
-		return {"data":raw.slice(ptr,end),"tag":tag};
+			return {"data":raw.slice(ptr),"tag":tag};
 	}
 }
 function loadSplitSounds(arr){
@@ -465,12 +468,18 @@ function rehyperlink(target,second) {
 			e.target.innerHTML = " loading...";
 			var a = null;
 			if(!archive){
-			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+				var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
 			}else{
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+					function(pe){
+						e.target.innerHTML = ' loading';
+						if(pe.lengthComputable){
+							e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+						}
+				});
 		});
 	}
 	var links = target.getElementsByClassName('soundlink');
@@ -513,6 +522,7 @@ function rehyperlink(target,second) {
 		link.tag = link.innerHTML.replace("[","").replace("]","");
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
+<<<<<<< HEAD
 			if(this.splittag){
 				var arr = playerSplitImages[this.splittag];
 				loadSplitSounds(arr);
@@ -524,6 +534,20 @@ function rehyperlink(target,second) {
 					rlink.innerHTML = '[' + rlink.tag + ']';
 				},this);
 			}
+=======
+			this.innerHTML = '[loading]';
+            xmlhttp(this.realhref, function(data,rlink) {
+				rlink.innerHTML = '[' + rlink.tag + ']';
+				showPlayer();
+				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+			},function(e,rlink){
+				rlink.innerHTML = '[loading';
+				if(e.lengthComputable){
+					rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+				}
+				rlink.innerHTML += ']';
+			},this);
+>>>>>>> master
 		});
 	}
 }
@@ -590,6 +614,7 @@ function hyperlinkone(target) {
 							link.addEventListener('click', function(e) {
 								
 								e.preventDefault();
+<<<<<<< HEAD
 								if(link.splittag){
 									var arr = playerSplitImages[link.splittag];
 									loadSplitSounds(arr);
@@ -601,6 +626,20 @@ function hyperlinkone(target) {
 										rlink.innerHTML = '[' + rlink.tag + ']';
 									},this);
 								}
+=======
+								this.innerHTML = '[loading]';
+								xmlhttp(link.realhref, function(data, rlink) {  
+									rlink.innerHTML = '[' + rlink.tag + ']';
+									showPlayer();
+									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+								},function(e,rlink){
+									rlink.innerHTML = '[loading';
+									if(e.lengthComputable){
+										rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+									}
+									rlink.innerHTML += ']';
+								},this);
+>>>>>>> master
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -638,6 +677,7 @@ function hyperlinkone(target) {
 					
 					link.addEventListener('click', function(e) {	
 						e.preventDefault();
+<<<<<<< HEAD
 						if(link.splittag){
 							var arr = playerSplitImages[link.splittag];
 							loadSplitSounds(arr);
@@ -649,6 +689,20 @@ function hyperlinkone(target) {
 								rlink.innerHTML = '[' + rlink.tag + ']';
 							},this);
 						}
+=======
+						this.innerHTML = '[loading]';
+						xmlhttp(this.realhref, function(data, rlink) {
+							rlink.innerHTML = '[' + rlink.tag + ']';
+							showPlayer();
+							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
+						},function(e,rlink){
+							rlink.innerHTML = '[loading';
+							if(e.lengthComputable){
+								rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+							}
+							rlink.innerHTML += ']';
+						},this);
+>>>>>>> master
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);
@@ -694,7 +748,7 @@ function addLoadAllLink(post) {
 		}
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
-			e.target.innerHTML = " loading...";
+			e.target.innerHTML = " loading";
 			var a = null;
 			if(!archive){
 			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
@@ -702,7 +756,14 @@ function addLoadAllLink(post) {
 				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 			}
 			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"});
+				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
+				function(pe){
+					e.target.innerHTML = ' loading';
+					if(pe.lengthComputable){
+						e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+					}
+				}
+				);
 		});
 		post.hasAllLink = true;
 	}
@@ -717,7 +778,6 @@ var playerTitle = null;
 var playerTime = null;
 var playerPlayer = null;
 var newWindow = null;
-var playerCompact = false;
 var playerCurrentDuration = 0;
 var playerMovingListItem = null;
 var playerSaveData = null;
@@ -731,10 +791,9 @@ var playerSeekbar = null;
 var playerSeekbarCurrent = null;
 
 var playerUserStyle = null;
-var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,userCSS:{}};
-var playerSettingsHeader = null;
-
 var playerSplitImages = {};
+var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,compact:false,userCSS:{}};
+var playerSettingsHeader = null;
 function fixFFbug() {
 	if (!chrome && !playerPlayer.paused) { 
 		// Workaround for Firefox bug #583444
@@ -885,11 +944,14 @@ function loadConf() {
 	playerSaveData = JSON.parse(localStorage.getItem("4chanSP"));
 	if(!playerSaveData) {
 		playerSaveData = playerDefault;
-	}else if(playerSaveData.css) {		
+	}else if(playerSaveData.css) {
 		playerSaveData.css = undefined;
 		playerSaveData.saveVer = undefined;
 	}else if(playerSaveData.userCSS && (playerSaveData.userCSS.length)){
 		playerSaveData.userCSS = {};
+	}
+	if(!playerSaveData.compact){
+		playerSaveData.compact = false;
 	}
 }
 
@@ -938,9 +1000,29 @@ function showPlayer() {
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
 		
-		
+		//
 		playerList = create('div', playerDiv, {"id":"playerList"});
 		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
+		playerList.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerList.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
+		playerControls2.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerControls2.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
 		playerPlayer.addEventListener('ended', function() {playerPlayPause.innerHTML = ">"; nextMusic(true);});
@@ -1195,6 +1277,7 @@ function showPlayer() {
 		
 		isPlayer = true;
 		document.body.appendChild(playerDiv);
+		swmode(playerSaveData.compact);
 		addCSS();
 		
 	}
@@ -1202,8 +1285,8 @@ function showPlayer() {
 
 function swmode(tocompact) {
 	if(tocompact === undefined) {
-		tocompact = !playerCompact;
-		playerCompact = !playerCompact;
+		tocompact = !playerSaveData.compact;
+		playerSaveData.compact = !playerSaveData.compact;
 	}
 	var s = tocompact ? "none" : "block";
 	playerImage.style.display = s;
@@ -1310,11 +1393,16 @@ function prevMusic() {
 	{
 		if(items[i].getAttribute("playing") == "true")
 		{
-			if(i === 0)
-				items[items.length-1].tagelem.click();
-			else
-				items[i-1].tagelem.click();
-			return;
+			if(playerPlayer.currentTime < 3) {
+				if(i === 0)
+					items[items.length-1].tagelem.click();
+				else
+					items[i-1].tagelem.click();
+				return;
+			}else{
+				items[i].tagelem.click();
+				return;
+			}
 		}
 	}
 	if(items.length > 0) items[0].tagelem.click();
@@ -1407,22 +1495,48 @@ function addCSS() {
 			'#playerSettings > tbody {display:block; padding: 0 10px 10px;}'+
 			'#playerListMenu, #playerListItemMenu {padding: 2px 3px; position: fixed; background: #e7e7e7;}'+
 			'.playerListItemMenuLink {width: 85px; height: 14px; display:block; oveflow:hidden; overflow:hidden;}'+
-			'#playerListMenuAddLocalInput{-moz-transform: scale(5) translateX(-140%); -webkit-transform: scale(5) translateX(-30%); opacity: 0; width: 100%;}';
+			'#playerListMenuAddLocalInput{-moz-transform: scale(5) translateX(-140%); opacity: 0; width: 100%;}';
 	document.getElementsByTagName('head')[0].appendChild(playerStyle);
 	}
 	updateUserCSS();
 }
 hyperlink();
 if(!archive){
-	document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
-	{
-		if(!e.target.classList) return;
-		if(e.target.classList.contains('inline')){
-			rehyperlink(e.target);
-		}else if(e.target.classList.contains('postContainer')){
-			hyperlinkone(e.target);
-		}
-	});
+	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+	if(MutationObserver) {
+		var obs = new MutationObserver(function(records) {
+			for(var i = 0; i < records.length; i++) {
+				var e = records[i];
+				if(e.type == "childList"){
+					if(e.addedNodes){
+						for(var j = 0; j < e.addedNodes.length;j++) {
+							var target = e.addedNodes[j];
+							if(target.classList){
+								if(target.classList.contains('inline')) {
+									rehyperlink(target);
+								}else if(target.classList.contains('postContainer')) {
+									hyperlinkone(target);
+								}else if(target.classList.contains('backlinkHr')) {
+									rehyperlink(target.parentNode.parentNode);
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+		obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
+	}else{
+		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
+		{
+			if(!e.target.classList) return;
+			if(e.target.classList.contains('inline')){
+				rehyperlink(e.target);
+			}else if(e.target.classList.contains('postContainer')){
+				hyperlinkone(e.target);
+			}
+		});
+	}
 	var relNode = document.getElementById('settingsWindowLink').nextSibling;
 	var playerShowLink = create('a',null,{'class':"settingsWindowLinkBot"});
 	var bracket = document.createTextNode('] [');
@@ -1435,5 +1549,5 @@ if(!archive){
 		e.preventDefault();
 		showPlayer();
 	});
-	
+
 }

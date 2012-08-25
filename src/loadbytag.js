@@ -186,8 +186,8 @@ function findOgg(raw, tag)
 			}
 		}
 		if(end>0)
-		return {"data":raw.slice(ptr,end),"tag":tag};
+			return {"data":raw.slice(ptr,end),"tag":tag};
 		else
-		return {"data":raw.slice(ptr,end),"tag":tag};
+			return {"data":raw.slice(ptr),"tag":tag};
 	}
 }

@@ -148,11 +148,14 @@ function loadConf() {
 	playerSaveData = JSON.parse(localStorage.getItem("4chanSP"));
 	if(!playerSaveData) {
 		playerSaveData = playerDefault;
-	}else if(playerSaveData.css) {		
+	}else if(playerSaveData.css) {
 		playerSaveData.css = undefined;
 		playerSaveData.saveVer = undefined;
 	}else if(playerSaveData.userCSS && (playerSaveData.userCSS.length)){
 		playerSaveData.userCSS = {};
+	}
+	if(!playerSaveData.compact){
+		playerSaveData.compact = false;
 	}
 }
 
@@ -201,9 +204,29 @@ function showPlayer() {
 		playerSeekbar = create('div', playerVolumeSeekHeader, {"id":"playerSeekbar"});
 		playerSeekbarCurrent = create('div', playerSeekbar, {"id":"playerSeekbarCurrent"});
 		
-		
+		//
 		playerList = create('div', playerDiv, {"id":"playerList"});
 		playerControls2 = create('div',playerDiv, {"id": "playerControls2"});
+		playerList.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerList.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
+		playerControls2.addEventListener('dragover', function(e){
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			return false;    
+		});  
+		playerControls2.addEventListener('drop', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			loadAll(e.dataTransfer.getData("text/plain"));
+		});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
 		playerPlayer.addEventListener('ended', function() {playerPlayPause.innerHTML = ">"; nextMusic(true);});
@@ -458,6 +481,7 @@ function showPlayer() {
 		
 		isPlayer = true;
 		document.body.appendChild(playerDiv);
+		swmode(playerSaveData.compact);
 		addCSS();
 		
 	}
@@ -465,8 +489,8 @@ function showPlayer() {
 
 function swmode(tocompact) {
 	if(tocompact === undefined) {
-		tocompact = !playerCompact;
-		playerCompact = !playerCompact;
+		tocompact = !playerSaveData.compact;
+		playerSaveData.compact = !playerSaveData.compact;
 	}
 	var s = tocompact ? "none" : "block";
 	playerImage.style.display = s;

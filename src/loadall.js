@@ -1,8 +1,8 @@
 function loadAll(file,cb) {
 	if(!(file.toString().indexOf(FileList))){ //WHY FIREFOX DON'T LIKE instanceof?
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link,cb);
-		}, file);
+			loadAllWithFooter(data,link,load);
+		},onprogress, file);
 	}else{
 		for(var i = 0; i < file.length;i++){
 		var reader = new FileReader();

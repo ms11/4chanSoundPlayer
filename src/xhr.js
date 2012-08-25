@@ -1,20 +1,21 @@
-function get_chrome(url, callback, userState)
+function get_chrome(url, callback, progressCb, userState)
 {
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', url, true);
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.responseType = 'arraybuffer';
+	if(progressCb)
+		xhr.onprogress = function(e){progressCb(e,userState);};
 	xhr.onload = function(e) {
 		if (this.status == 200)	{
 			callback(this.response,userState);
-			//callback(findOggWithFooter(this.response, link.tag), link);
 		}
 	};
 	xhr.send();
 }
-//modified to be able to pass thumbnail link
-function get_grease(url, callback, userState) {
-	GM_xmlhttpRequest({
+
+function get_grease(url, callback, progressCb, userState) {
+	var arg = {
 		method: "GET",
 		url: url,
 		overrideMimeType: 'text/plain; charset=x-user-defined',
@@ -25,9 +26,11 @@ function get_grease(url, callback, userState) {
 				var text = e.responseText;
 				var foo = s2ab(text);
 				callback(foo,userState);
-				//callback(findOggWithFooter(foo, link.tag), link);
 			}
 		}
-	});
+	};
+	if(progressCb)
+		arg.onprogress = function(e){progressCb(e,userState);};
+	GM_xmlhttpRequest(arg);
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
