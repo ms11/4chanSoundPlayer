@@ -174,20 +174,6 @@ function showPlayer() {
 		playerTitle = create('div', playerHeader, {"id": "playerTitle"});
 		playerTime = create('div', playerHeader, {"id": "playerTime"});
 		playerImage = create('img', playerDiv, {"id": "playerImage"});
-		if(MutationObserver) {
-			var imgobs = new MutationObserver(function(records) {
-				for(var i = 0; i < records.length; i++) {
-					var r = records[i];
-					if(r.type == "attribute") {
-						if(r.attributeName == "src" && r.oldValue.indexOf("http") < 0) {
-							(window.webkitURL || window.URL).revokeObjectURL(r.oldValue);
-							alert('blob removed');
-						}
-					}
-				}
-			});
-			imgobs.observe(playerImage,{attributes:true,attributeOldValue:true});
-		}
 		
 		playerControls = create('div', playerDiv, {"id": "playerControls"});
 		playerVolumeSeekHeader = create('div', playerDiv, {"id": "playerVolumeSeekHeader"});
