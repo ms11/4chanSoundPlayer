@@ -174,6 +174,21 @@ function showPlayer() {
 		playerTitle = create('div', playerHeader, {"id": "playerTitle"});
 		playerTime = create('div', playerHeader, {"id": "playerTime"});
 		playerImage = create('img', playerDiv, {"id": "playerImage"});
+		if(MutationObserver) {
+			var imgobs = new MutationObserver(function(records) {
+				for(var i = 0; i < records.length; i++) {
+					var r = records[i];
+					if(r.type == "attribute") {
+						if(r.attributeName == "src" && r.oldValue.indexOf("http") < 0) {
+							(window.webkitURL || window.URL).revokeObjectURL(r.oldValue);
+							alert('blob removed');
+						}
+					}
+				}
+			});
+			imgobs.observe(playerImage,{attributes:true,attributeOldValue:true});
+		}
+		
 		playerControls = create('div', playerDiv, {"id": "playerControls"});
 		playerVolumeSeekHeader = create('div', playerDiv, {"id": "playerVolumeSeekHeader"});
 		playerVolume = create('div', playerVolumeSeekHeader, {"id": "playerVolume"});
@@ -215,7 +230,11 @@ function showPlayer() {
 		playerList.addEventListener('drop', function(e) {
 			e.stopPropagation();
 			e.preventDefault();
-			loadAll(e.dataTransfer.getData("text/plain"));
+			if(e.dataTransfer.files.length > 0) {
+				loadAll(e.dataTransfer.files,false);
+			}else{
+				loadAll(e.dataTransfer.getData("text/plain"),true);
+			}
 		});
 		playerControls2.addEventListener('dragover', function(e){
 			e.preventDefault();
@@ -225,7 +244,11 @@ function showPlayer() {
 		playerControls2.addEventListener('drop', function(e) {
 			e.stopPropagation();
 			e.preventDefault();
-			loadAll(e.dataTransfer.getData("text/plain"));
+			if(e.dataTransfer.files.length > 0) {
+				loadAll(e.dataTransfer.files,false);
+			}else{
+				loadAll(e.dataTransfer.getData("text/plain"),true);
+			}
 		});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
@@ -421,7 +444,7 @@ function showPlayer() {
 		playerListMenuAddLocal.innerHTML = "Add local files...";
 		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput","multiple":"true"});
 		playerListMenuAddLocalInput.addEventListener('change', function(e) {
-			loadAll(e.target.files);
+			loadAll(e.target.files,false);
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
 		playerList.addEventListener('contextmenu', function(e) {
