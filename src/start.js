@@ -1,5 +1,6 @@
 hyperlink();
 if(!archive){
+	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 	if(MutationObserver) {
 		var postobs = new MutationObserver(function(records) {
 			for(var i = 0; i < records.length; i++) {
