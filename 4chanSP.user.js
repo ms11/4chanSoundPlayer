@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.72
+// @version        0.73
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -111,16 +111,16 @@ function get_grease(url, callback, progressCb, userState) {
 	GM_xmlhttpRequest(arg);
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
-function loadAll(file,cb) {
-	if(!(file.toString().indexOf(FileList))){ //WHY FIREFOX DON'T LIKE instanceof?
+function loadAll(file,isUrl,cb) {
+	if(isUrl){
 		xmlhttp(file,function(data,link) {
-			loadAllWithFooter(data,link,load);
+			loadAllWithFooter(data,link,cb);
 		},onprogress, file);
 	}else{
 		for(var i = 0; i < file.length;i++){
 		var reader = new FileReader();
 		reader.onload = function() {
-		loadAllWithFooter(this.result,cb);
+		loadAllWithFooter(this.result,"",cb);
 		};
 		reader.readAsArrayBuffer(file[i]);
 		}
@@ -429,11 +429,11 @@ function findOgg(raw, tag)
 			return {"data":raw.slice(ptr),"tag":tag};
 	}
 }
-function loadSplitSounds(arr){
+function loadSplitSounds(arr,cb,userState){
 	var data = {links:arr.slice(),sounddata:[]};
-	realLoadSplitSounds(data,arr[0].realhref,arr[0].splittag);
+	realLoadSplitSounds(data,arr[0].realhref,arr[0].splittag,cb,userState);
 }
-function realLoadSplitSounds(data,url,tag){
+function realLoadSplitSounds(data,url,tag,cb,userState){
 	if(data.links.length < 1){
 		var len = 0;
 		for(var i = 0; i < data.sounddata.length;i++){
@@ -448,13 +448,15 @@ function realLoadSplitSounds(data,url,tag){
 			offs+=sa.length;
 		}
 		showPlayer();
+		if(cb)
+			cb(userState);
 		addMusic({data:raw,tag:tag},tag,url);
 	}else{
 		xmlhttp(data.links[0].realhref,function(resp){
 			var sound = findOggWithFooter(resp,data.links[0].tag)
 			data.sounddata.push(sound.data);
 			data.links = data.links.splice(1);
-			realLoadSplitSounds(data,url,tag);
+			realLoadSplitSounds(data,url,tag,cb,userState);
 		});
 	}
 }
@@ -466,20 +468,28 @@ function rehyperlink(target,second) {
 		list[i].addEventListener('click',function(e) {
 			e.preventDefault();
 			e.target.innerHTML = " loading...";
-			var a = null;
-			if(!archive){
-				var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+			if(this.splittag){
+				var arr = playerSplitImages[this.splittag];
+				loadSplitSounds(arr,function(rlink){
+					rlink.innerHTML = " Load all sounds";
+				},this);
 			}else{
-				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
+				var a = null;
+				if(!archive){
+					var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+				}else{
+					a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
+				}
+				if(a) {
+					loadAll(a.href,true,function(){e.target.innerHTML = " Load all sounds"},
+						function(pe){
+							e.target.innerHTML = ' loading';
+							if(pe.lengthComputable){
+								e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+							}
+					});
+				}
 			}
-			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
-					function(pe){
-						e.target.innerHTML = ' loading';
-						if(pe.lengthComputable){
-							e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
-						}
-				});
 		});
 	}
 	var links = target.getElementsByClassName('soundlink');
@@ -510,44 +520,33 @@ function rehyperlink(target,second) {
 		
 		var sp = null;
 		if(sp = link.innerHTML.match(/(.*?)\.([0-9].*)/)){
-			if(!playerSplitImages.hasOwnProperty(sp[1])){
-				playerSplitImages[sp[1]] = [];
-			}
+
 			link.splittag = sp[1];
 			link.splitid = sp[2];
-			playerSplitImages[sp[1]].push(link);
+			p.splittag = sp[1];
 		}
 
 		link.realhref = a.href;
 		link.tag = link.innerHTML.replace("[","").replace("]","");
 		link.addEventListener('click', function(e) {
 			e.preventDefault();
-<<<<<<< HEAD
 			if(this.splittag){
 				var arr = playerSplitImages[this.splittag];
 				loadSplitSounds(arr);
 			}else{
 				this.innerHTML = '[loading]';
-				xmlhttp(this.realhref, function(data,rlink) {   
+				xmlhttp(this.realhref, function(data,rlink) {
+					rlink.innerHTML = '[' + rlink.tag + ']';
 					showPlayer();
 					addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-					rlink.innerHTML = '[' + rlink.tag + ']';
+				},function(e,rlink){
+					rlink.innerHTML = '[loading';
+					if(e.lengthComputable){
+						rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+					}
+					rlink.innerHTML += ']';
 				},this);
 			}
-=======
-			this.innerHTML = '[loading]';
-            xmlhttp(this.realhref, function(data,rlink) {
-				rlink.innerHTML = '[' + rlink.tag + ']';
-				showPlayer();
-				addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-			},function(e,rlink){
-				rlink.innerHTML = '[loading';
-				if(e.lengthComputable){
-					rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
-				}
-				rlink.innerHTML += ']';
-			},this);
->>>>>>> master
 		});
 	}
 }
@@ -588,7 +587,6 @@ function hyperlinkone(target) {
 							if (!(match = subnode.nodeValue.match(/(.*)\[([^\]]+)\](.*)/))) {
 								continue;
 							}
-							addLoadAllLink(p);
 							repeat = true;
 							var href = a.href;
 							var code = match[2];
@@ -608,38 +606,32 @@ function hyperlinkone(target) {
 								link.splittag = sp[1];
 								link.splitid = sp[2];
 								playerSplitImages[sp[1]].push(link);
+								p.splittag = sp[1];
 							}
 							
 							
+							addLoadAllLink(p);
 							link.addEventListener('click', function(e) {
 								
 								e.preventDefault();
-<<<<<<< HEAD
+
 								if(link.splittag){
 									var arr = playerSplitImages[link.splittag];
 									loadSplitSounds(arr);
 								}else{
 									this.innerHTML = '[loading]';
-									xmlhttp(link.realhref, function(data, rlink) {   
+									xmlhttp(link.realhref, function(data, rlink) {  
+										rlink.innerHTML = '[' + rlink.tag + ']';
 										showPlayer();
 										addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-										rlink.innerHTML = '[' + rlink.tag + ']';
+									},function(e,rlink){
+										rlink.innerHTML = '[loading';
+										if(e.lengthComputable){
+											rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+										}
+										rlink.innerHTML += ']';
 									},this);
 								}
-=======
-								this.innerHTML = '[loading]';
-								xmlhttp(link.realhref, function(data, rlink) {  
-									rlink.innerHTML = '[' + rlink.tag + ']';
-									showPlayer();
-									addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-								},function(e,rlink){
-									rlink.innerHTML = '[loading';
-									if(e.lengthComputable){
-										rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
-									}
-									rlink.innerHTML += ']';
-								},this);
->>>>>>> master
 							});
 							subnode.nodeValue = match[1];
 							insertAfter(subnode, link);
@@ -653,7 +645,7 @@ function hyperlinkone(target) {
 					}
 					repeat = true;
 					
-					addLoadAllLink(p);
+					
 					var href = a.href;
 					var code = match[2];
 					var link = document.createElement('a');
@@ -672,37 +664,30 @@ function hyperlinkone(target) {
 						link.splittag = sp[1];
 						link.splitid = sp[2];
 						playerSplitImages[sp[1]].push(link);
+						p.splittag = sp[1];
 					}
-					
+					addLoadAllLink(p);
 					
 					link.addEventListener('click', function(e) {	
 						e.preventDefault();
-<<<<<<< HEAD
 						if(link.splittag){
 							var arr = playerSplitImages[link.splittag];
 							loadSplitSounds(arr);
 						}else{
 							this.innerHTML = '[loading]';
-							xmlhttp(this.realhref, function(data, rlink) {   
+							xmlhttp(this.realhref, function(data, rlink) {
+								rlink.innerHTML = '[' + rlink.tag + ']';
 								showPlayer();
 								addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-								rlink.innerHTML = '[' + rlink.tag + ']';
+							},function(e,rlink){
+								rlink.innerHTML = '[loading';
+								if(e.lengthComputable){
+									rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
+								}
+								rlink.innerHTML += ']';
 							},this);
 						}
-=======
-						this.innerHTML = '[loading]';
-						xmlhttp(this.realhref, function(data, rlink) {
-							rlink.innerHTML = '[' + rlink.tag + ']';
-							showPlayer();
-							addMusic(findOggWithFooter(data, rlink.tag),rlink.tag,rlink.realhref);
-						},function(e,rlink){
-							rlink.innerHTML = '[loading';
-							if(e.lengthComputable){
-								rlink.innerHTML += '(' + ~~((e.loaded/e.total)*100) + '%)';
-							}
-							rlink.innerHTML += ']';
-						},this);
->>>>>>> master
+						
 					});
 					node.nodeValue = match[1];
 					insertAfter(node, link);
@@ -719,11 +704,6 @@ function hyperlink() {
 	var posts = archive? 'article':'blockquote';
 	posts = document.getElementsByTagName(posts);
 	for (var i = 0; i < posts.length; i++) {
-		// dom-insertion listener lags the fuck out on longer threads
-		if (lastPost && getPostID(posts[i]) <= lastPost) {
-			// fixed (somewhat)
-			continue;
-		}
 		hyperlinkone(posts[i]);
 	}
 }
@@ -732,9 +712,9 @@ function addLoadAllLink(post) {
 	if(!post.hasAllLink){
 		var to = null;
 		if(!archive) {
-		var id = getPostID(post);
-		var pi = document.getElementById('f'+id);
-		to = pi.getElementsByClassName('fileInfo')[0];
+			var id = getPostID(post);
+			var pi = document.getElementById('f'+id);
+			to = pi.getElementsByClassName('fileInfo')[0];
 		}else{
 			var head = post.parentNode.getElementsByTagName('header')[0];
 			head = head.getElementsByClassName('post_data')[0];
@@ -746,24 +726,32 @@ function addLoadAllLink(post) {
 			loadAllLink.classList.add('btnr');
 			loadAllLink.classList.add('parent');
 		}
+		loadAllLink.splittag = post.splittag;
 		loadAllLink.addEventListener('click',function(e) {
 			e.preventDefault();
 			e.target.innerHTML = " loading";
-			var a = null;
-			if(!archive){
-			var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+			if(this.splittag){
+				var arr = playerSplitImages[this.splittag];
+				loadSplitSounds(arr,function(rlink){
+					rlink.innerHTML = " Load all sounds";
+				},this);
 			}else{
-				a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
-			}
-			if(a)
-				loadAll(a.href,function(){e.target.innerHTML = " Load all sounds"},
-				function(pe){
-					e.target.innerHTML = ' loading';
-					if(pe.lengthComputable){
-						e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
-					}
+				var a = null;
+				if(!archive){
+					var a = e.target.parentNode.parentNode.getElementsByClassName('fileThumb')[0];
+				}else{
+					a = byClass(e.target.parentNode.parentNode.parentNode.parentNode.getElementsByTagName('a'), 'thread_image_link');
 				}
-				);
+				if(a) {
+					loadAll(a.href,true,function(){e.target.innerHTML = " Load all sounds"},
+					function(pe){
+						e.target.innerHTML = ' loading';
+						if(pe.lengthComputable){
+							e.target.innerHTML += '(' + ~~((pe.loaded/pe.total)*100) + '%)';
+						}
+					});
+				}
+			}
 		});
 		post.hasAllLink = true;
 	}
@@ -970,6 +958,21 @@ function showPlayer() {
 		playerTitle = create('div', playerHeader, {"id": "playerTitle"});
 		playerTime = create('div', playerHeader, {"id": "playerTime"});
 		playerImage = create('img', playerDiv, {"id": "playerImage"});
+		if(MutationObserver) {
+			var imgobs = new MutationObserver(function(records) {
+				for(var i = 0; i < records.length; i++) {
+					var r = records[i];
+					if(r.type == "attribute") {
+						if(r.attributeName == "src" && r.oldValue.indexOf("http") < 0) {
+							(window.webkitURL || window.URL).revokeObjectURL(r.oldValue);
+							alert('blob removed');
+						}
+					}
+				}
+			});
+			imgobs.observe(playerImage,{attributes:true,attributeOldValue:true});
+		}
+		
 		playerControls = create('div', playerDiv, {"id": "playerControls"});
 		playerVolumeSeekHeader = create('div', playerDiv, {"id": "playerVolumeSeekHeader"});
 		playerVolume = create('div', playerVolumeSeekHeader, {"id": "playerVolume"});
@@ -1011,7 +1014,11 @@ function showPlayer() {
 		playerList.addEventListener('drop', function(e) {
 			e.stopPropagation();
 			e.preventDefault();
-			loadAll(e.dataTransfer.getData("text/plain"));
+			if(e.dataTransfer.files.length > 0) {
+				loadAll(e.dataTransfer.files,false);
+			}else{
+				loadAll(e.dataTransfer.getData("text/plain"),true);
+			}
 		});
 		playerControls2.addEventListener('dragover', function(e){
 			e.preventDefault();
@@ -1021,7 +1028,11 @@ function showPlayer() {
 		playerControls2.addEventListener('drop', function(e) {
 			e.stopPropagation();
 			e.preventDefault();
-			loadAll(e.dataTransfer.getData("text/plain"));
+			if(e.dataTransfer.files.length > 0) {
+				loadAll(e.dataTransfer.files,false);
+			}else{
+				loadAll(e.dataTransfer.getData("text/plain"),true);
+			}
 		});
 		playerPlayer = create('audio', playerDiv, {"id": "playerPlayer"});
 		//playerCurrentVolume.style.left = (playerPlayer.volume*170) + "px";
@@ -1217,7 +1228,7 @@ function showPlayer() {
 		playerListMenuAddLocal.innerHTML = "Add local files...";
 		playerListMenuAddLocalInput = create('input', playerListMenuAddLocal, {"type":"file","id":"playerListMenuAddLocalInput","multiple":"true"});
 		playerListMenuAddLocalInput.addEventListener('change', function(e) {
-			loadAll(e.target.files);
+			loadAll(e.target.files,false);
 			playerListMenu.parentNode.removeChild(playerListMenu);
 		});
 		playerList.addEventListener('contextmenu', function(e) {
@@ -1502,9 +1513,8 @@ function addCSS() {
 }
 hyperlink();
 if(!archive){
-	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 	if(MutationObserver) {
-		var obs = new MutationObserver(function(records) {
+		var postobs = new MutationObserver(function(records) {
 			for(var i = 0; i < records.length; i++) {
 				var e = records[i];
 				if(e.type == "childList"){
@@ -1525,7 +1535,8 @@ if(!archive){
 				}
 			}
 		});
-		obs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
+		postobs.observe(document.getElementsByClassName('board')[0],{childList:true,subtree:true,characterData:true});
+
 	}else{
 		document.getElementsByClassName('board')[0].addEventListener('DOMNodeInserted', function(e)
 		{
