@@ -251,7 +251,11 @@ function addLoadAllLink(post) {
 		var to = null;
 		if(!archive) {
 			var id = getPostID(post);
+			
 			var pi = document.getElementById('f'+id);
+			if(!pi && post.id.indexOf('_') > -1) {
+				pi = document.getElementById(post.id.split('_')[0] + '_f'+id);
+			}
 			to = pi.getElementsByClassName('fileInfo')[0];
 		}else{
 			var head = post.parentNode.getElementsByTagName('header')[0];

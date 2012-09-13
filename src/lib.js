@@ -36,7 +36,11 @@ function getPostID(o)
 	{
 		o = o.substr(1);
 	}
-	return parseInt(o);
+	var ret = Number(o);
+	if(!ret){
+		ret = Number(o.split('_')[1].substr(1));
+	}
+	return ret;
 }
 function create(type, parent, attributes)
 {

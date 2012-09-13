@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.78
+// @version        0.79
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -47,7 +47,11 @@ function getPostID(o)
 	{
 		o = o.substr(1);
 	}
-	return parseInt(o);
+	var ret = Number(o);
+	if(!ret){
+		ret = Number(o.split('_')[1].substr(1));
+	}
+	return ret;
 }
 function create(type, parent, attributes)
 {
@@ -713,7 +717,11 @@ function addLoadAllLink(post) {
 		var to = null;
 		if(!archive) {
 			var id = getPostID(post);
+			
 			var pi = document.getElementById('f'+id);
+			if(!pi && post.id.indexOf('_') > -1) {
+				pi = document.getElementById(post.id.split('_')[0] + '_f'+id);
+			}
 			to = pi.getElementsByClassName('fileInfo')[0];
 		}else{
 			var head = post.parentNode.getElementsByTagName('header')[0];
@@ -1538,7 +1546,7 @@ if(!archive){
 	var relNode = document.getElementById('settingsWindowLink').nextSibling;
 	var playerShowLink = create('a',null,{'class':"settingsWindowLinkBot"});
 	var bracket = document.createTextNode('] [');
-	var elem = document.getElementById('navtopright');
+	var elem = document.getElementById('navtopr');
 	elem.insertBefore(playerShowLink,relNode);
 	elem.insertBefore(bracket,playerShowLink);
 	playerShowLink.innerHTML = "Show player";
