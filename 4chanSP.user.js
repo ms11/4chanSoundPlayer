@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.77
+// @version        0.78
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -151,7 +151,7 @@ function loadAllWithFooter(raw,link,cb) {
 				i+=4;
 				var end = toUInt32(data,i);
 				i+=4;
-				tags.push({tag:tag,start:start,end:end+1});
+				tags.push({tag:tag,start:start,end:end});
 			}
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){
@@ -270,7 +270,7 @@ function findOggWithFooter(raw,tag) {
 			var start = toUInt32(data,i);
 			i += 4;
 			var end = toUInt32(data,i);
-			return {data:raw.slice(start,end+1),tag:tag};
+			return {data:raw.slice(start,end),tag:tag};
 		}
 		return findOgg(raw,tag);
 	}else

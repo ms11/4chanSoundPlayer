@@ -32,7 +32,7 @@ function findOggWithFooter(raw,tag) {
 			var start = toUInt32(data,i);
 			i += 4;
 			var end = toUInt32(data,i);
-			return {data:raw.slice(start,end+1),tag:tag};
+			return {data:raw.slice(start,end),tag:tag};
 		}
 		return findOgg(raw,tag);
 	}else

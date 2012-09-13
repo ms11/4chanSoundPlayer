@@ -38,7 +38,7 @@ function loadAllWithFooter(raw,link,cb) {
 				i+=4;
 				var end = toUInt32(data,i);
 				i+=4;
-				tags.push({tag:tag,start:start,end:end+1});
+				tags.push({tag:tag,start:start,end:end});
 			}
 			showPlayer();
 			for(var i = 0; i < tags.length;i++){
