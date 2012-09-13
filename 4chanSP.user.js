@@ -6,7 +6,7 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.79
+// @version        0.80
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
 
@@ -1546,7 +1546,7 @@ if(!archive){
 	var relNode = document.getElementById('settingsWindowLink').nextSibling;
 	var playerShowLink = create('a',null,{'class':"settingsWindowLinkBot"});
 	var bracket = document.createTextNode('] [');
-	var elem = document.getElementById('navtopr');
+	var elem = document.getElementById('navtopright');
 	elem.insertBefore(playerShowLink,relNode);
 	elem.insertBefore(bracket,playerShowLink);
 	playerShowLink.innerHTML = "Show player";
