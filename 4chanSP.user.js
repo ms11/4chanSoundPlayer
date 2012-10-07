@@ -1363,10 +1363,7 @@ function addMusic(resp,tag,url) {
 		showMoverTargets(false);
 	});
 	mvl.innerHTML = "[here]";
-	var BlobBuilder = (window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder);
-    var bb = new BlobBuilder();
-	bb.append(data);
-    var blob = bb.getBlob('audio/ogg');
+	var blob = new Blob([data], {type: 'audio/ogg'});
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;
 	item.uri = url;
