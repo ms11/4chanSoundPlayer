@@ -43,7 +43,9 @@ function addMusic(resp,tag,url) {
 	};
 	item.addEventListener('contextmenu',function(e) {
 		e.preventDefault();
-		if(playerListItemMenu.parentNode) playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+		if(playerListItemMenu.parentNode)
+            playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+
 		document.body.appendChild(playerListItemMenu);
 		playerListItemMenu.style.left = e.clientX + 5 + "px";
 		playerListItemMenu.style.top = e.clientY + 5 + "px";
@@ -115,7 +117,8 @@ function nextMusic(auto) {
 	{
 		if(items[i].getAttribute("playing") == "true")
 		{
-			if(auto && playerSaveData.repeat == 2){ items[i].tagelem.click(); return;}
+			if(auto && playerSaveData.repeat == 2)
+                items[i].tagelem.click(); return;
 			
 			if(playerSaveData.shuffle && items.length > 1) {
 			var rnd = Math.floor(Math.random()*items.length);

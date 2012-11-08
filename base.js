@@ -1,0 +1,12 @@
+#include<src/header.js>
+#include<src/lib.js>
+#include<src/xhr.js>
+#include<src/loadall.js>
+#include<src/loadbytag.js>
+#include<src/loadsplitted.js>
+#include<src/taglinks.js>
+#include<src/globals.js>
+#include<src/player.js>
+#include<src/music.js>
+#include<src/css.js>
+#include<src/start.js>

@@ -6,9 +6,11 @@
 // @include        https://boards.4chan.org/*
 // @include        http://archive.foolz.us/*
 // @include        https://archive.foolz.us/*
-// @version        0.80
+// @grant          GM_xmlhttpRequest
+// @version        0.81
 // @updateURL      https://raw.github.com/ms11/4chanSoundPlayer/master/4chanSP.user.js
 // ==/UserScript==
+
 
 var chrome = (navigator.userAgent+'').indexOf(' Chrome/') != -1;
 var archive = (document.location+'').indexOf('boards.4chan.org') == -1;
@@ -79,6 +81,7 @@ function toUInt32(data,offset){
 function toUInt16(data,offset){
 	return data[offset] | data[offset + 1] << 8;
 }
+
 function get_chrome(url, callback, progressCb, userState)
 {
 	var xhr = new XMLHttpRequest();
@@ -115,6 +118,7 @@ function get_grease(url, callback, progressCb, userState) {
 	GM_xmlhttpRequest(arg);
 }
 var xmlhttp = chrome ? get_chrome:get_grease;
+
 function loadAll(file,isUrl,cb) {
 	if(isUrl){
 		xmlhttp(file,function(data,link) {
@@ -240,6 +244,7 @@ function loadAllFromData(raw,link,cb) {
 		cb();
 	}
 }
+
 function findOggWithFooter(raw,tag) {
 	var tagU = s2ab(tag);
 	var tag8 = new Uint8Array(tagU);
@@ -433,6 +438,7 @@ function findOgg(raw, tag)
 			return {"data":raw.slice(ptr),"tag":tag};
 	}
 }
+
 function loadSplitSounds(arr,cb,userState){
 	var data = {links:arr.slice(),sounddata:[]};
 	realLoadSplitSounds(data,arr[0].realhref,arr[0].splittag,cb,userState);
@@ -464,6 +470,7 @@ function realLoadSplitSounds(data,url,tag,cb,userState){
 		});
 	}
 }
+
 function rehyperlink(target,second) {
 	var list = target.getElementsByClassName('playerLoadAllLink');
 	for(var i = 0; i < list.length;i++){
@@ -765,6 +772,7 @@ function addLoadAllLink(post) {
 	}
 }
 
+
 var lastPost = null;	// last post that was hyperlink()ed
 var lastHyper = 0;		// unixtime*1000 for last hyperlink()
 var isPlayer = false;
@@ -790,6 +798,7 @@ var playerUserStyle = null;
 var playerSplitImages = {};
 var playerDefault = {right:0,bottom:0,shuffle:0,repeat:0,volume:1,compact:false,userCSS:{}};
 var playerSettingsHeader = null;
+
 function fixFFbug() {
 	if (!chrome && !playerPlayer.paused) { 
 		// Workaround for Firefox bug #583444
@@ -1299,6 +1308,7 @@ function swmode(tocompact) {
 	playerControls2.style.marginTop = tocompact ? "15px" : "0px";
 	putInsidePage();
 }
+
 function showMoverTargets(show) {
 	if(show === undefined) {
 		show = true;
@@ -1344,7 +1354,9 @@ function addMusic(resp,tag,url) {
 	};
 	item.addEventListener('contextmenu',function(e) {
 		e.preventDefault();
-		if(playerListItemMenu.parentNode) playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+		if(playerListItemMenu.parentNode)
+            playerListItemMenu.parentNode.removeChild(playerListItemMenu);
+
 		document.body.appendChild(playerListItemMenu);
 		playerListItemMenu.style.left = e.clientX + 5 + "px";
 		playerListItemMenu.style.top = e.clientY + 5 + "px";
@@ -1363,7 +1375,7 @@ function addMusic(resp,tag,url) {
 		showMoverTargets(false);
 	});
 	mvl.innerHTML = "[here]";
-	var blob = new Blob([data], {type: 'audio/ogg'});
+	var blob = new Blob([data],{type: 'audio/ogg'});
 	item.bloburl = (window.webkitURL || window.URL).createObjectURL(blob);
 	item.tag = tag;
 	item.uri = url;
@@ -1416,7 +1428,8 @@ function nextMusic(auto) {
 	{
 		if(items[i].getAttribute("playing") == "true")
 		{
-			if(auto && playerSaveData.repeat == 2){ items[i].tagelem.click(); return;}
+			if(auto && playerSaveData.repeat == 2)
+                items[i].tagelem.click(); return;
 			
 			if(playerSaveData.shuffle && items.length > 1) {
 			var rnd = Math.floor(Math.random()*items.length);
@@ -1436,6 +1449,7 @@ function nextMusic(auto) {
 	}
 	if(items.length > 0) items[0].tagelem.click();
 }
+
 function updateUserCSS(input) {
 	if(input){
 		if(!playerSaveData.userCSS) {
@@ -1502,6 +1516,7 @@ function addCSS() {
 	}
 	updateUserCSS();
 }
+
 hyperlink();
 if(!archive){
 	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
@@ -1554,3 +1569,4 @@ if(!archive){
 	});
 
 }
+

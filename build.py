@@ -25,18 +25,18 @@ def build():
         pass
 
 def newversion(old,new):
-    out = open("src\\header.js","r")
+    out = open("src/header.js","r")
     lines = out.readlines()
     for i in range(len(lines)):
         if "@version" in line:
             lines[i] = lines[i].replace(old,new)
     out.close()
-    out = open("src\\header.js","w")
+    out = open("src/header.js","w")
     out.writelines(lines)
     out.close()
     build()
 
-f = open("src\\header.js","r")
+f = open("src/header.js","r")
 line = f.readline()
 while line:
     if "@version" in line:
