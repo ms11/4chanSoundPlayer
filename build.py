@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 import re,string
 try:
     import install
