@@ -1,6 +1,6 @@
 
-var lastPost = null;	// last post that was hyperlink()ed
-var lastHyper = 0;		// unixtime*1000 for last hyperlink()
+var lastPost = null;    // last post that was hyperlink()ed
+var lastHyper = 0;      // unixtime*1000 for last hyperlink()
 var isPlayer = false;
 var playerDiv = null;
 var playerList = null;
