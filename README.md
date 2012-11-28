@@ -4,7 +4,7 @@ You're propably looking for this:
 
 If want to know how to use the script, you should read the [Wiki](https://github.com/ms11/4chanSoundPlayer/wiki "Wiki")
 
-##Moot attacked this, and he clearly doesn't want it on 4chan, in any form.
+#####Moot attacked this, and he clearly doesn't want it on 4chan, in any form.
 
 So we'll just continue on /foolz/
 
